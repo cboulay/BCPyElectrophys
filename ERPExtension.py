@@ -18,8 +18,8 @@ import threading
 import numpy as np
 #import random
 #import time
-from EeratAPI.API import *
-from MyPythonApps.OnlineAPIExtension import *
+from EERF.API import *
+from EERF.APIextension import *
 from AppTools.Shapes import Block
 import SigTools
 
@@ -43,11 +43,11 @@ class ERPThread(threading.Thread):
                     # value is the erp data for this trial.
                     # Everything else can be extracted from app
                     #===========================================================
-                    self.app.period.trials.append(Datum(subject_id=self.app.subject.subject_id\
+                    my_trial = Datum(subject_id=self.app.subject.subject_id\
                             , datum_type_id=self.app.period.datum_type_id\
                             , span_type='trial'\
-                            , IsGood=1, Number=0))#Number=0 kicks a SQL trigger to find the lowest number
-                    my_trial = self.app.period.trials[-1]
+                            , IsGood=1, Number=0)
+                    self.app.period.trials.append(my_trial)#Number=0 kicks a SQL trigger to find the lowest number
                     for k in my_trial.detail_values.keys():
                         if k=='dat_Nerve_stim_output': my_trial.detail_values[k]=str(self.app.digistim.intensity)
                         if k=='dat_TMS_powerA': my_trial.detail_values[k]=str(self.app.magstim.intensity)
@@ -55,8 +55,7 @@ class ERPThread(threading.Thread):
                         if k=='dat_TMS_ISI': my_trial.detail_values[k]=str(self.app.magstim.ISI)
                         if k=='dat_task_condition': my_trial.detail_values[k]=str(self.app.states['TargetCode'])
                     my_trial.store={'x_vec':self.app.x_vec, 'data':value, 'channel_labels': self.app.chlbs}
-                    #We need to trick the ORM to store the trial in the database immediately.
-                    Session.object_session(self.app.period).flush()
+                    Session.object_session(self.app.period).flush()#We need to trick the ORM to store the trial in the database immediately.
                     self.app.period.EndTime = datetime.datetime.now() + datetime.timedelta(minutes = 5)
                     
                 elif key=='default':
@@ -149,10 +148,7 @@ class ERPApp(object):
             #===================================================================
             # Get our subject from the DB API.
             #===================================================================
-            my_subject_type=get_or_create(Subject_type, Name='BCPy_healthy')#Must come before next statement.
-            app.subject=get_or_create(Subject, Name=app.params['SubjectName'], species_type='human')
-            if not app.subject.subject_type_id:
-                app.subject.subject_type_id=my_subject_type.subject_type_id
+            app.subject=get_or_create(Subject, Name=app.params['SubjectName'])
                 
             #===================================================================
             # Get our period from the DB API.
@@ -163,8 +159,8 @@ class ERPApp(object):
             app.period = app.subject.get_most_recent_period(datum_type=my_period_type,delay=0)#Will create period if it does not exist.
             
             #===================================================================
-            # Prepare the buffers for saving the ERP
-            # -leaky_trap contains the ERP (pre_stim_samples + post_stim_samples + some breathing room
+            # Prepare the buffers for saving the data
+            # -leaky_trap contains the data to be saved (trap size defined by pre_stim_samples + post_stim_samples + some breathing room
             # -trig_trap contains only the trigger channel
             #===================================================================
             app.x_vec=np.arange(app.erpwin[0],app.erpwin[1],1000/app.eegfs,dtype=float)#Needed when saving trials
