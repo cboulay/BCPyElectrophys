@@ -91,11 +91,12 @@ class ERPApp(object):
             "PythonApp:ERPDatabase    list        ERPChan= 1 EDC_RAW % % % // Channels to store in database",
             "PythonApp:ERPDatabase    floatlist    ERPWindow= {Start Stop} -500 500 0 % % // Stored window, relative to trigger onset, in millesconds",
             "PythonApp:ERPDatabase    int        ERPFeedbackDisplay= 0 0 0 2 // Feedback as: 0 None, 1 TwoColour, 2 Continuous (enumeration)",
-            "PythonApp:ERPDatabase    int        ERPFeedbackOf= 0 0 0 2 // Feedback as: 0 aaa, 1 p2p, 2 residual (enumeration)",
-            "PythonApp:ERPDatabase    float        ERPFeedbackThreshold= 3.0 0 % % // (+/-) threshold for correct erp feedback",
+            #"PythonApp:ERPDatabase    string     ERPFeedbackChannel= EDC % % % // Feedback feature channel",
+            "PythonApp:ERPDatabase    int        ERPFeedbackType= 0 0 0 2 // Feedback feature type as: 0 aaa, 1 p2p, 2 residual (enumeration)",
+            "PythonApp:ERPDatabase    float        ERPFeedbackThreshold= 3.0 0 % % // Threshold for correct erp feedback",
         ]
     states = [
-            "LastERPVal 16 0 0 0", #Last ERP's interesting value
+            "LastERPVal 16 0 0 0", #Last ERP's feature value
             "ERPCollected 1 0 0 0", #Whether or not the ERP was collected this trial.
         ]
     

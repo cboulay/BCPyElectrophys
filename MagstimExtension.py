@@ -15,7 +15,7 @@ class MagstimApp(object):
             "PythonApp:Magstim        int        MSEnable= 1 1 0 1 // Enable: 0 no, 1 yes (boolean)",
             "PythonApp:Magstim        string    MSSerialPort= COM4 % % % // Serial port for controlling Magstim",
             "PythonApp:Magstim        int        MSTriggerType= 0 0 0 2 // Trigger by: 0 SerialPort, 1 Contec1, 2 Contec2 (enumeration)",
-            "PythonApp:Magstim        int        MSReqStimReady= 0 0 0 1 // (Buggy) Require ready response to trigger: 0 no, 1 yes (boolean)",
+            "PythonApp:Magstim        int        MSReqStimReady= 0 0 0 1 // Require ready response to trigger: 0 no, 1 yes (boolean)",
             "PythonApp:Magstim        float      MSISIMin= 6 6 2 % // Minimum time s between stimuli",
             "PythonApp:Magstim        int        MSIntensityA= 50 50 0 100 // TS for single, CS for double",
             "PythonApp:Magstim        int        MSIntensityB= 0 0 0 100 // TS for double",

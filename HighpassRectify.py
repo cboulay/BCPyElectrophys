@@ -37,7 +37,7 @@ class BciSignalProcessing(BciGenericSignalProcessing):
 	
 	def Construct(self):
 		parameters = [
-			"PythonSig list ProcessChannels= 1 EDC % % % // List of channels to process",
+			"PythonSig list ProcessChannels= 1 EDC % % % // Processed channels appended and labeled <X>_AAA",
 			"PythonSig float HPCutoffHz= 10 10 0 % // HP filter cutoff frequency in Hz",
 			"PythonSig int HPOrder= 8 8 0 % // HP filter order",
 			"PythonSig float LPCutoffHz= 10 10 0 % // LP filter cutoff frequency in Hz",
@@ -88,7 +88,7 @@ class BciSignalProcessing(BciGenericSignalProcessing):
 			chan_labels=out_sig_props['ChannelLabels'] #Since this is a shallow copy>>
 			add_chan_labels=[]
 			for cc in pch:
-				add_chan_labels.append(cc+'_RAW')
+				add_chan_labels.append(cc+'_AAA')
 			chan_labels.extend(add_chan_labels) #>> out_sig_props is automatically updated here.
 			return out_sig_props
 			
@@ -124,25 +124,24 @@ class BciSignalProcessing(BciGenericSignalProcessing):
 		#~ We can return the processed signal here.
 		if len(self.procchan):
 			# Store a copy of the raw data from the channels to be processed.
-			# These will be available to the Application module as '<channame>_RAW'
 			# Or indexed at the end of the TransmitChannelList
-			raw_data=sig[self.procchan,:]
+			proc_data = sig[self.procchan,:]
 			
 			#HP Filter
 			if self.hpfilter != None:
-				sig[self.procchan,:] = self.hpfilter(sig[self.procchan,:], axis=1)
+				proc_data = self.hpfilter(proc_data, axis=1)
 		
 			#Rectify
-			sig[self.procchan,:] = numpy.abs(sig[self.procchan,:])
+			proc_data = numpy.abs(proc_data)
 		
 			#LP Filter
 			if self.lpfilter != None:
-				sig[self.procchan,:] = self.lpfilter(sig[self.procchan,:], axis=1)
+				proc_data = self.lpfilter(proc_data, axis=1)
 				
-			sig[self.procchan,:] = sig[self.procchan,:] * self.params['OutputScaleFactor'].val
-			sig[self.procchan,:] = sig[self.procchan,:] + self.params['OutputOffset'].val
+			proc_data = proc_data * self.params['OutputScaleFactor'].val
+			proc_data = proc_data + self.params['OutputOffset'].val
 		#Concat the raw data to the bottom of the processed data
 		#Should a scalar be returned instead of all the samples?
-		return numpy.concatenate((sig,raw_data))
+		return numpy.concatenate((sig,proc_data))
 #################################################################
 #################################################################

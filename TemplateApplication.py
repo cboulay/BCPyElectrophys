@@ -29,11 +29,11 @@ from AppTools.Displays import fullscreen
 from AppTools.StateMonitors import addstatemonitor, addphasemonitor
 from AppTools.Shapes import Disc
 
-from MyBCPyModules.ContingencyExtension import ContingencyApp
-from MyBCPyModules.ContinuousFeedbackExtension import FeedbackApp
-from MyBCPyModules.MagstimExtension import MagstimApp
-from MyBCPyModules.DigitimerExtension import DigitimerApp
-from MyBCPyModules.ERPExtension import ERPApp
+from ContingencyExtension import ContingencyApp
+from ContinuousFeedbackExtension import FeedbackApp
+from MagstimExtension import MagstimApp
+from DigitimerExtension import DigitimerApp
+from ERPExtension import ERPApp
 
 class BciApplication(BciGenericApplication):
 	
