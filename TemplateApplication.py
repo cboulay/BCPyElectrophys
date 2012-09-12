@@ -18,7 +18,7 @@
 #===============================================================================
 	
 import numpy as np
-from random import randint, uniform
+from random import randint, uniform, random
 from math import ceil
 import time
 
@@ -50,6 +50,7 @@ class BciApplication(BciGenericApplication):
 			"PythonApp:Design  float	IntertrialDur=	  0.5   0.5   0.0 100.0 // Intertrial duration in seconds",
 			"PythonApp:Design  float	BaselineDur=		4.0   4.0   0.0 100.0 // Baseline duration in seconds",
 			"PythonApp:Design  float	TaskDur=			6.0   6.0   0.0 100.0 // Task duration in seconds (unless contingency or stim)",
+			"PythonApp:Design  float	TaskRand=			3.0   3.0   0.0 100.0 // Task duration in seconds (unless contingency or stim)",
 			"PythonApp:Display  int		ScreenId=		   -1	-1	 %   %  // on which screen should the stimulus window be opened - use -1 for last",
 			"PythonApp:Display  float	WindowSize=		 0.8   1.0   0.0 1.0 // size of the stimulus window, proportional to the screen",
 			]
@@ -67,6 +68,7 @@ class BciApplication(BciGenericApplication):
 			# "Response 1 0 0 0",
 			# "StopCue 1 0 0 0",
 			"TargetCode 4 0 0 0",
+			"TaskNBlocks 12 0 0 0",
 			#===================================================================
 		]
 		states.extend(ContingencyApp.states)
@@ -182,16 +184,12 @@ class BciApplication(BciGenericApplication):
 	#############################################################
 	def Phases(self):
 		# define phase machine using calls to self.phase and self.design
-		self.phase(name='intertrial', next='baseline', duration=self.params['IntertrialDur'].val*1000.0)#TODO Replace this duration with some parameter
+		self.phase(name='intertrial', next='baseline', duration=self.params['IntertrialDur'].val*1000.0)
 		self.phase(name='baseline', next='gocue', duration=self.params['BaselineDur'].val*1000.0)
 		self.phase(name='gocue', next='task', duration=1000)
-		self.phase(name='task', next='response',duration=None\
-				if (int(self.params['ContingencyEnable'])\
-				or int(self.params['MSEnable'])\
-				or int(self.params['DigitimerEnable']))\
-				else self.params['TaskDur'].val*1000.0)
+		self.phase(name='task', next='response',duration=None)
 		self.phase(name='response', next='stopcue',\
-				duration=None if int(self.params['ERPDatabaseEnable']) else 1)
+				duration=None if int(self.params['ERPDatabaseEnable']) else 100)
 		self.phase(name='stopcue', next='intertrial', duration=1000)
 
 		self.design(start='intertrial', new_trial='intertrial')
@@ -223,7 +221,11 @@ class BciApplication(BciGenericApplication):
 			self.stimuli['cue'].text = self.params['GoCueText'][t-1]
 			
 		elif phase == 'task':
-			pass
+			if int(self.params['ContingencyEnable']):
+				self.states['TaskNBlocks'] = 0
+			else:
+				task_length = self.params['TaskDur'].val + random()*self.params['TaskRand'].val
+				self.states['TaskNBlocks'] = task_length * self.eegfs / self.spb
 			
 		elif phase == 'response':
 			pass
@@ -251,13 +253,10 @@ class BciApplication(BciGenericApplication):
 		FeedbackApp.process(self, sig)
 		
 		#If we are in Task, and we are using ContingencyApp or MagstimApp or DigitimerApp
-		if self.in_phase('task') and (\
-			int(self.params['ContingencyEnable'])\
-			or int(self.params['MSEnable'])\
-			or int(self.params['DigitimerEnable'])):
-			contingency_met = self.states['ContingencyOK'] if int(self.params['ContingencyEnable']) else True
-			magstim_ready = self.states['MagstimReady'] if int(self.params['MSEnable']) else True
-			digitimer_ready = self.states['DigitimerReady'] if int(self.params['DigitimerEnable']) else True
+		if self.in_phase('task', min_packets=self.states['TaskNBlocks']):
+			contingency_met = not int(self.params['ContingencyEnable']) or self.states['ContingencyOK']
+			magstim_ready = not int(self.params['MSEnable']) or self.states['MagstimReady']
+			digitimer_ready = not int(self.params['DigitimerEnable']) or self.states['DigitimerReady']
 			if contingency_met and magstim_ready and digitimer_ready:
 				self.change_phase('response')
 			
