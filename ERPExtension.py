@@ -18,8 +18,8 @@ import threading
 import numpy as np
 #import random
 #import time
-from EERF.API import *
-from EERF.APIextension import *
+#from EERF.API import *
+#from EERF.APIextension.online import *
 from AppTools.Shapes import Block
 import SigTools
 
@@ -43,20 +43,50 @@ class ERPThread(threading.Thread):
                     # value is the erp data for this trial.
                     # Everything else can be extracted from app
                     #===========================================================
-                    my_trial = Datum(subject_id=self.app.subject.subject_id\
-                            , datum_type_id=self.app.period.datum_type_id\
-                            , span_type='trial'\
-                            , IsGood=1, Number=0)
-                    self.app.period.trials.append(my_trial)#Number=0 kicks a SQL trigger to find the lowest number
-                    for k in my_trial.detail_values.keys():
-                        if k=='dat_Nerve_stim_output': my_trial.detail_values[k]=str(self.app.digistim.intensity)
-                        if k=='dat_TMS_powerA': my_trial.detail_values[k]=str(self.app.magstim.intensity)
-                        if k=='dat_TMS_powerB': my_trial.detail_values[k]=str(self.app.magstim.intensityb)
-                        if k=='dat_TMS_ISI': my_trial.detail_values[k]=str(self.app.magstim.ISI)
-                        if k=='dat_task_condition': my_trial.detail_values[k]=str(self.app.states['TargetCode'])
-                    my_trial.store={'x_vec':self.app.x_vec, 'data':value, 'channel_labels': self.app.chlbs}
-                    Session.object_session(self.app.period).flush()#We need to trick the ORM to store the trial in the database immediately.
+                    #self.app.period.trials.append(
+                    my_trial = get_or_create(Datum, subject_id=self.app.subject.subject_id\
+                                    , span_type='trial'\
+                                    , IsGood=1, Number=0, sess=Session.object_session(self.app.period))
+                    my_trial.periods = [self.app.period]
+                    #Populate a dict of detail_values
+                    #Copy relevant detail values from parent period.
+                    per_details = self.app.period.detail_values
+                    if int(self.app.params['ERPFeedbackDisplay']):
+                        if 'BG_start_ms' in per_details:
+                            my_trial.detail_values['BG_start_ms'] = per_details['BG_start_ms']
+                        if 'BG_stop_ms' in per_details:
+                            my_trial.detail_values['BG_stop_ms'] = per_details['BG_stop_ms']
+                        if 'MEP' in self.app.params['ERPFeedbackFeature']:
+                            if 'MEP_start_ms' in per_details:
+                                my_trial.detail_values['MEP_start_ms'] = per_details['MEP_start_ms']
+                            if 'MEP_stop_ms' in per_details:
+                                my_trial.detail_values['MEP_stop_ms'] = per_details['MEP_stop_ms']
+                        elif 'HR' in self.app.params['ERPFeedbackFeature']:
+                            if 'MR_start_ms' in per_details:
+                                my_trial.detail_values['MR_start_ms'] = per_details['MR_start_ms']
+                            if 'MR_stop_ms' in per_details:
+                                my_trial.detail_values['MR_stop_ms'] = per_details['MR_stop_ms']
+                            if 'HR_start_ms' in per_details:
+                                my_trial.detail_values['HR_start_ms'] = per_details['HR_start_ms']
+                            if 'HR_stop_ms' in per_details:
+                                my_trial.detail_values['HR_stop_ms'] = per_details['HR_stop_ms']
+                    
+                    #Add detail values from the experimental conditions.
+                    my_trial.detail_values['Task_condition'] = str(self.app.states['TargetCode'])
+                    my_trial.detail_values['Task_condition'] = str(self.app.states['TargetCode'])
+                    if int(self.app.params['DigitimerEnable'])>0:
+                        my_trial.detail_values['Nerve_stim_output'] = str(self.app.digistim.intensity)
+                    if int(self.app.params['MSEnable'])>0:
+                        my_trial.detail_values['TMS_powerA'] = str(self.app.magstim.intensity)
+                        if self.app.magstim.ISI > 0:
+                            my_trial.detail_values['TMS_powerB'] = str(self.app.magstim.intensityb)
+                            my_trial.detail_values['TMS_ISI'] = str(self.app.magstim.ISI)
+                    
+                    my_trial.store={'x_vec':self.app.x_vec, 'data':value, 'channel_labels': self.app.params['ERPChan']}
+                    
                     self.app.period.EndTime = datetime.datetime.now() + datetime.timedelta(minutes = 5)
+                    Session.object_session(self.app.period).commit()
+                    print 'committing'
                     
                 elif key=='default':
                     #===========================================================
@@ -68,15 +98,16 @@ class ERPThread(threading.Thread):
                     if int(self.app.params['ERPFeedbackDisplay'])>0:
                         last_trial = self.app.period.trials[-1] if self.app.period.trials.count()>0 else None
                         if last_trial:
-                            feature_type_name={0:'aaa', 1:'p2p', 2:'residual'}.get(int(self.app.params['ERPFeedbackOf']))
-                            if 'hr' in last_trial.type_name:
-                                feature_type_name = 'HR_' + feature_type_name
-                            elif 'mep' in last_trial.type_name:
-                                feature_type_name = 'MEP_' + feature_type_name
-                            last_trial.calculate_value_for_feature_name(feature_type_name)
-                            feature_value = last_trial.feature_values[feature_type_name]
+                            feature_name = self.app.params['ERPFeedbackFeature']
+                            last_trial.detail_values['Conditioned_feature_name'] = feature_name
+                            last_trial.calculate_value_for_feature_name(feature_name)
+                            feature_value = last_trial.feature_values[feature_name]
                             feature_value = feature_value * self.app.erp_scale
                             self.app.states['LastERPVal'] = np.uint16(feature_value)
+                            
+                            x = int(np.int16(feature_value))
+                            fbthresh = self.app.params['ERPFeedbackThreshold'].val * self.app.erp_scale
+                            last_trial.detail_values['Conditioned_result'] = (fbthresh>0 and x>=fbthresh) or (fbthresh<0 and x<=fbthresh)
                     
                 elif key=='shutdown': return
                 self.queue.task_done()#signals to queue job is done. Maybe the stimulator object should do this?
@@ -84,16 +115,14 @@ class ERPThread(threading.Thread):
 class ERPApp(object):
     params = [
             "PythonApp:ERPDatabase    int        ERPDatabaseEnable= 1 1 0 1 // Enable: 0 no, 1 yes (boolean)",
-            "PythonApp:ERPDatabase    int        ERPDatumType= 0 0 0 5 // 0 hr_hunting, 1 hr_io, 2 mep_io, 3 mep_sici, 4 mep_mapping, 5 mep_imagery (enumeration)",
-            "PythonApp:ERPDatabase    list        TriggerInputChan= 1 Trig % % % // Name of channel used to monitor trigger / control ERP window",
-            "PythonApp:ERPDatabase    float        TriggerThreshold= 1 1 0 % // Use this threshold to determine ERP time 0",
+            "PythonApp:ERPDatabase    list       TriggerInputChan= 1 Trig % % % // Name of channel used to monitor trigger / control ERP window",
+            "PythonApp:ERPDatabase    float      TriggerThreshold= 1 1 0 % // Use this threshold to determine ERP time 0",
             #"PythonApp:ERPDatabase   int            UseSoftwareTrigger= 0 0 0 1  // Use phase change to determine trigger onset (boolean)",
-            "PythonApp:ERPDatabase    list        ERPChan= 1 EDC_RAW % % % // Channels to store in database",
-            "PythonApp:ERPDatabase    floatlist    ERPWindow= {Start Stop} -500 500 0 % % // Stored window, relative to trigger onset, in millesconds",
+            "PythonApp:ERPDatabase    list       ERPChan= 1 EDC % % % // Channels to store in database",
+            "PythonApp:ERPDatabase    floatlist  ERPWindow= {Start Stop} -500 500 0 % % // Stored window, relative to trigger onset, in millesconds",
             "PythonApp:ERPDatabase    int        ERPFeedbackDisplay= 0 0 0 2 // Feedback as: 0 None, 1 TwoColour, 2 Continuous (enumeration)",
-            #"PythonApp:ERPDatabase    string     ERPFeedbackChannel= EDC % % % // Feedback feature channel",
-            "PythonApp:ERPDatabase    int        ERPFeedbackType= 0 0 0 2 // Feedback feature type as: 0 aaa, 1 p2p, 2 residual (enumeration)",
-            "PythonApp:ERPDatabase    float        ERPFeedbackThreshold= 3.0 0 % % // Threshold for correct erp feedback",
+            "PythonApp:ERPDatabase    string     ERPFeedbackFeature= MEP_p2p % % % // Name of feature for feedback",
+            "PythonApp:ERPDatabase    float      ERPFeedbackThreshold= 3.0 0 % % // Threshold for correct erp feedback",
         ]
     states = [
             "LastERPVal 16 0 0 0", #Last ERP's feature value
@@ -146,18 +175,11 @@ class ERPApp(object):
     @classmethod
     def initialize(cls, app, indim, outdim):
         if int(app.params['ERPDatabaseEnable'])==1:
-            #===================================================================
             # Get our subject from the DB API.
-            #===================================================================
             app.subject=get_or_create(Subject, Name=app.params['SubjectName'])
                 
-            #===================================================================
             # Get our period from the DB API.
-            #===================================================================
-            #Determine datum type from parameters. 0 hr_hunting, 1 hr_io, 2 mep_io, 3 mep_sici, 4 mep_mapping, 5 mep_imagery
-            period_type_name={0:'hr_hunting', 1:'hr_io', 2:'mep_io', 3:'mep_sici', 4:'mep_mapping', 5: 'mep_imagery'}.get(int(app.params['ERPDatumType']))
-            my_period_type=get_or_create(Datum_type, Name=period_type_name)
-            app.period = app.subject.get_most_recent_period(datum_type=my_period_type,delay=0)#Will create period if it does not exist.
+            app.period = app.subject.get_most_recent_period(delay=0)#Will create period if it does not exist.
             
             #===================================================================
             # Prepare the buffers for saving the data
@@ -165,14 +187,13 @@ class ERPApp(object):
             # -trig_trap contains only the trigger channel
             #===================================================================
             app.x_vec=np.arange(app.erpwin[0],app.erpwin[1],1000/app.eegfs,dtype=float)#Needed when saving trials
-            app.chlbs = [ch_name[0:-4] if ch_name.endswith('_RAW') else ch_name for ch_name in app.params['ERPChan']]#Needed when saving trials.
             app.post_stim_samples = SigTools.msec2samples(app.erpwin[1], app.eegfs)
             app.pre_stim_samples = SigTools.msec2samples(np.abs(app.erpwin[0]), app.eegfs)
-            app.leaky_trap=SigTools.Buffering.trap(app.pre_stim_samples + app.post_stim_samples + 5*app.spb, len(app.chlbs), leaky=True)
+            app.leaky_trap=SigTools.Buffering.trap(app.pre_stim_samples + app.post_stim_samples + 5*app.spb, len(app.params['ERPChan']), leaky=True)
             app.trig_trap = SigTools.Buffering.trap(app.post_stim_samples, 1, trigger_channel=0, trigger_threshold=app.trigthresh)
             
             #===================================================================
-            # Use a thread for slower database interactions
+            # Use a thread for database interactions because sometimes they will be slow.
             # (saving a trial also calculates all of that trial's features)
             #===================================================================
             app.erp_thread = ERPThread(Queue.Queue(), app)
@@ -240,16 +261,16 @@ class ERPApp(object):
     @classmethod
     def process(cls,app,sig):
         if int(app.params['ERPDatabaseEnable'])==1:
-            app.leaky_trap.process(sig[app.erpchan,:])
             app.trig_trap.process(sig[app.trigchan,:])
-            
+            app.leaky_trap.process(sig[app.erpchan,:])
+                        
             if app.in_phase('response') and app.trig_trap.full():
                 n_excess = (app.trig_trap.nseen-app.trig_trap.sprung_at)-app.trig_trap.nsamples
-                app.trig_trap.reset()
                 data = app.leaky_trap.read()
                 data = data[:,-1*(app.pre_stim_samples+app.post_stim_samples+n_excess):-1*n_excess]
                 app.erp_thread.queue.put({'save_trial':data})
                 app.states['ERPCollected'] = True
+                app.trig_trap.reset()
                 
             if app.changed('LastERPVal'):
                 if int(app.params['ERPFeedbackDisplay'])==2:

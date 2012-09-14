@@ -107,6 +107,7 @@ class MagstimApp(object):
                 app.states['MSIntensityB'] = app.magstim.intensityb
                 app.states['ISIx10'] = app.magstim.ISI
                 app.remember('tms_trig')
+                app.magstim.armed = False
                 
             elif phase == 'stopcue':
                 pass
@@ -114,17 +115,20 @@ class MagstimApp(object):
     @classmethod
     def process(cls,app,sig):
         if int(app.params['MSEnable'])==1:
+            
+            #Arm the coil if it is not armed and should be.
+            if not app.magstim.armed and not (app.in_phase('response') or app.in_phase('stopcue')):
+                if not app.magstim.remocon: app.magstim.remocon = True
+                app.magstim.armed = True
+                app.magstim.remocon = False#Toggle remocon so that we can manually adjust the intensity.
+                
             ####################################
             # Update the StimulatorReady state #
             ####################################
             stim_ready = app.magstim.armed if not app.params['MSReqStimReady'].val else (app.magstim.ready and app.magstim.armed)
-            stim_ready = True #Debugging
+            #stim_ready = True #Debugging
             isiok = app.since('tms_trig')['msec'] >= 1000.0 * float(app.params['MSISIMin'])
             app.states['MagstimReady'] = stim_ready and isiok
-            if not app.magstim.armed:
-                if not app.magstim.remocon: app.magstim.remocon = True
-                app.magstim.armed = True
-                app.magstim.remocon = False#Toggle remocon so that we can manually adjust the intensity.
     
     @classmethod
     def event(cls, app, phasename, event):
