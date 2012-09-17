@@ -18,8 +18,10 @@ import threading
 import numpy as np
 #import random
 #import time
-#from EERF.API import *
-#from EERF.APIextension.online import *
+from eerfstandalone import standalone
+from eerfstandalone.eerfapi.models import *
+try: Subject.objects.get_or_create(name='Test')[0]
+except ImportError: pass #Don't know why but I get an import error on the first try.
 from AppTools.Shapes import Block
 import SigTools
 
@@ -176,7 +178,7 @@ class ERPApp(object):
     def initialize(cls, app, indim, outdim):
         if int(app.params['ERPDatabaseEnable'])==1:
             # Get our subject from the DB API.
-            app.subject=get_or_create(Subject, Name=app.params['SubjectName'])
+            app.subject = Subject.objects.get_or_create(name=app.params['SubjectName'])[0]
                 
             # Get our period from the DB API.
             app.period = app.subject.get_most_recent_period(delay=0)#Will create period if it does not exist.
