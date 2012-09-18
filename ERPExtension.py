@@ -18,10 +18,11 @@ import threading
 import numpy as np
 #import random
 #import time
-from eerfstandalone import standalone
-from eerfstandalone.eerfapi.models import *
-try: Subject.objects.get_or_create(name='Test')[0]
-except ImportError: pass #Don't know why but I get an import error on the first try.
+import os
+sys.path.append(os.path.abspath('d:/tools/eerf/python/eerf'))
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "eerf.settings")
+from api.models import *
+
 from AppTools.Shapes import Block
 import SigTools
 
@@ -30,6 +31,8 @@ class ERPThread(threading.Thread):
         threading.Thread.__init__(self)
         self.app = app
         self.queue = queue
+        self.app.subject = Subject.objects.get_or_create(name=self.app.params['SubjectName'])[0]# Get our subject from the DB API.
+        self.app.period = self.app.subject.get_or_create_recent_period(delay=0)# Get our period from the DB API.
         
     def run(self):
         while True:
@@ -43,76 +46,63 @@ class ERPThread(threading.Thread):
                 if key=='save_trial':
                     #===========================================================
                     # value is the erp data for this trial.
-                    # Everything else can be extracted from app
+                    # Everything else can be extracted from self.app
                     #===========================================================
-                    #self.app.period.trials.append(
-                    my_trial = get_or_create(Datum, subject_id=self.app.subject.subject_id\
-                                    , span_type='trial'\
-                                    , IsGood=1, Number=0, sess=Session.object_session(self.app.period))
-                    my_trial.periods = [self.app.period]
-                    #Populate a dict of detail_values
-                    #Copy relevant detail values from parent period.
-                    per_details = self.app.period.detail_values
+                    my_trial = Datum.objects.create(subject=self.app.subject,
+                                                    span_type='trial'
+                                                    )
+                    self.app.period.trials.add(my_trial)
+                    
+                    #Copy relevant detail values from self.app.period to my_trial
+                    per_details = self.app.period.detail_values_dict()
                     if int(self.app.params['ERPFeedbackDisplay']):
-                        if 'BG_start_ms' in per_details:
-                            my_trial.detail_values['BG_start_ms'] = per_details['BG_start_ms']
-                        if 'BG_stop_ms' in per_details:
-                            my_trial.detail_values['BG_stop_ms'] = per_details['BG_stop_ms']
-                        if 'MEP' in self.app.params['ERPFeedbackFeature']:
-                            if 'MEP_start_ms' in per_details:
-                                my_trial.detail_values['MEP_start_ms'] = per_details['MEP_start_ms']
-                            if 'MEP_stop_ms' in per_details:
-                                my_trial.detail_values['MEP_stop_ms'] = per_details['MEP_stop_ms']
-                        elif 'HR' in self.app.params['ERPFeedbackFeature']:
-                            if 'MR_start_ms' in per_details:
-                                my_trial.detail_values['MR_start_ms'] = per_details['MR_start_ms']
-                            if 'MR_stop_ms' in per_details:
-                                my_trial.detail_values['MR_stop_ms'] = per_details['MR_stop_ms']
-                            if 'HR_start_ms' in per_details:
-                                my_trial.detail_values['HR_start_ms'] = per_details['HR_start_ms']
-                            if 'HR_stop_ms' in per_details:
-                                my_trial.detail_values['HR_stop_ms'] = per_details['HR_stop_ms']
+                        for kk in per_details:
+                            if kk in ['BG_start_ms','BG_stop_ms'] or\
+                                (kk in ['MEP_start_ms','MEP_stop_ms'] and 'MEP' in self.app.params['ERPFeedbackFeature']) or\
+                                (kk in ['MR_start_ms','MR_stop_ms','HR_start_ms','HR_stop_ms'] and 'HR' in self.app.params['ERPFeedbackFeature']):
+                                my_trial.update_ddv(kk,per_details[kk])
                     
                     #Add detail values from the experimental conditions.
-                    my_trial.detail_values['Task_condition'] = str(self.app.states['TargetCode'])
-                    my_trial.detail_values['Task_condition'] = str(self.app.states['TargetCode'])
+                    my_trial.update_ddv('Task_condition',str(self.app.states['TargetCode']))
                     if int(self.app.params['DigitimerEnable'])>0:
-                        my_trial.detail_values['Nerve_stim_output'] = str(self.app.digistim.intensity)
+                        my_trial.update_ddv('Nerve_stim_output',str(self.app.digistim.intensity))
                     if int(self.app.params['MSEnable'])>0:
-                        my_trial.detail_values['TMS_powerA'] = str(self.app.magstim.intensity)
+                        my_trial.update_ddv('TMS_powerA',str(self.app.magstim.intensity))
                         if self.app.magstim.ISI > 0:
-                            my_trial.detail_values['TMS_powerB'] = str(self.app.magstim.intensityb)
-                            my_trial.detail_values['TMS_ISI'] = str(self.app.magstim.ISI)
+                            my_trial.update_ddv('TMS_powerB',str(self.app.magstim.intensityb))
+                            my_trial.update_ddv('TMS_ISI',str(self.app.magstim.ISI))
                     
-                    my_trial.store={'x_vec':self.app.x_vec, 'data':value, 'channel_labels': self.app.params['ERPChan']}
+                    #Save the data store.
+                    my_store = DatumStore.objects.create(datum=my_trial,
+                                                         x_vec=self.app.x_vec,
+                                                         channel_labels=self.app.params['ERPChan'])
+                    #value's dim0 is channels and dim1 is samples.
+                    if value.shape[0] != len(self.app.params['ERPChan']):
+                        value = value.T
+                    my_store.data = value #this will set erp, n_channels and n_samples and save.
                     
-                    self.app.period.EndTime = datetime.datetime.now() + datetime.timedelta(minutes = 5)
-                    Session.object_session(self.app.period).commit()
-                    print 'committing'
+                    self.app.period.extend_stop_time()
                     
                 elif key=='default':
-                    #===========================================================
-                    # TODO: Check the database for the last trial. If it is new, then
-                    # retrieve the desired ERP value (ERPFeedbackOf) and then 
-                    # change the value of self.app.states['LastERPx100']
-                    # Also set last_trial.detail_values['dat_conditioned_result']
-                    #===========================================================
                     if int(self.app.params['ERPFeedbackDisplay'])>0:
-                        last_trial = self.app.period.trials[-1] if self.app.period.trials.count()>0 else None
+                        last_trial = self.app.period.trials.order_by('-datum_id').all()[0] if self.app.period.trials.count()>0 else None
                         if last_trial:
                             feature_name = self.app.params['ERPFeedbackFeature']
-                            last_trial.detail_values['Conditioned_feature_name'] = feature_name
+                            last_trial.update_ddv('Conditioned_feature_name', feature_name)
                             last_trial.calculate_value_for_feature_name(feature_name)
-                            feature_value = last_trial.feature_values[feature_name]
+                            feature_value = last_trial.feature_values_dict()[feature_name]
                             feature_value = feature_value * self.app.erp_scale
                             self.app.states['LastERPVal'] = np.uint16(feature_value)
                             
                             x = int(np.int16(feature_value))
                             fbthresh = self.app.params['ERPFeedbackThreshold'].val * self.app.erp_scale
-                            last_trial.detail_values['Conditioned_result'] = (fbthresh>0 and x>=fbthresh) or (fbthresh<0 and x<=fbthresh)
+                            last_trial.update_ddv('Conditioned_result',
+                                                  (fbthresh>0 and x>=fbthresh) or (fbthresh<0 and x<=fbthresh))
                     
-                elif key=='shutdown': return
-                self.queue.task_done()#signals to queue job is done. Maybe the stimulator object should do this?
+                elif key=='shutdown':
+                    return
+                
+                self.queue.task_done()
 
 class ERPApp(object):
     params = [
@@ -177,18 +167,13 @@ class ERPApp(object):
     @classmethod
     def initialize(cls, app, indim, outdim):
         if int(app.params['ERPDatabaseEnable'])==1:
-            # Get our subject from the DB API.
-            app.subject = Subject.objects.get_or_create(name=app.params['SubjectName'])[0]
-                
-            # Get our period from the DB API.
-            app.period = app.subject.get_most_recent_period(delay=0)#Will create period if it does not exist.
-            
+                        
             #===================================================================
             # Prepare the buffers for saving the data
             # -leaky_trap contains the data to be saved (trap size defined by pre_stim_samples + post_stim_samples + some breathing room
             # -trig_trap contains only the trigger channel
             #===================================================================
-            app.x_vec=np.arange(app.erpwin[0],app.erpwin[1],1000/app.eegfs,dtype=float)#Needed when saving trials
+            app.x_vec=np.arange(app.erpwin[0],app.erpwin[1],1000.0/app.eegfs,dtype=float)#Needed when saving trials
             app.post_stim_samples = SigTools.msec2samples(app.erpwin[1], app.eegfs)
             app.pre_stim_samples = SigTools.msec2samples(np.abs(app.erpwin[0]), app.eegfs)
             app.leaky_trap=SigTools.Buffering.trap(app.pre_stim_samples + app.post_stim_samples + 5*app.spb, len(app.params['ERPChan']), leaky=True)
