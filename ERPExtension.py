@@ -73,9 +73,9 @@ class ERPThread(threading.Thread):
                             my_trial.update_ddv('TMS_ISI',str(self.app.magstim.ISI))
                     
                     #Save the data store.
-                    my_store = DatumStore.objects.create(datum=my_trial,
-                                                         x_vec=self.app.x_vec,
-                                                         channel_labels=self.app.params['ERPChan'])
+                    my_store = DatumStore(datum=my_trial,
+                                          x_vec=self.app.x_vec,
+                                          channel_labels=self.app.params['ERPChan'])
                     #value's dim0 is channels and dim1 is samples.
                     if value.shape[0] != len(self.app.params['ERPChan']):
                         value = value.T
