@@ -9,7 +9,7 @@ class FeedbackApp(object):
     params = [
               #"Tab:SubSection DataType Name= Value DefaultValue LowRange HighRange // Comment (identifier)",
               #See further details http://bci2000.org/wiki/index.php/Technical_Reference:Parameter_Definition
-            "Feedback:Design    int          ContFeedbackEnable=  1 1 0 1 // Enable: 0 no, 1 yes (boolean)",
+            "Feedback:Design    int          ContFeedbackEnable=  0 0 0 1 // Enable: 0 no, 1 yes (boolean)",
             "Feedback:Design    list         FeedbackChannels=    1 EDC % % % // Channel for feedback (max 1 channel for now)",
             #Sometimes we want to save some data (via ERPExtension) that is not fed back,
             #so the signal processing module will pass in more data than we need for feedback. Thus we need to select FeedbackChannels.
@@ -17,12 +17,12 @@ class FeedbackApp(object):
             "Feedback:Design    int          BaselineConstant=    0 % % % // Should baseline feedback be constant? (boolean)",
             "Feedback:Design    int          FakeFeedback=        0 % % % // Make feedback contingent on an external file (boolean)",
             "Feedback:Design    string       FakeFile=            % % % % // Path to fake feedback csv file (inputfile)",
-            "Feedback:Visual    int          VisualFeedback=      1 1 0 1 // Show online feedback? (boolean)",
+            "Feedback:Visual    int          VisualFeedback=      0 0 0 1 // Show online feedback? (boolean)",
             "Feedback:Visual    int          VisualType=          0 0 0 2 // Feedback type: 0 bar, 1 cursor, 2 none (enumeration)",
             "Feedback:Visual    int          UseContForColor=     0 0 0 1 // Feedback color follows contingency: 0 no, 1 yes (boolean)",
-            "Feedback:Audio     int          AudioFeedback=       1 0 0 1 // Play continuous sounds? (boolean)",
+            "Feedback:Audio     int          AudioFeedback=       0 0 0 1 // Play continuous sounds? (boolean)",
             "Feedback:Audio     matrix       AudioWavs=           2 1 300hz.wav 900hz.wav % % % // feedback wavs",
-            "Feedback:Handbox   int          HandboxFeedback=     1 0 0 1 // Move handbox? (boolean)",
+            "Feedback:Handbox   int          HandboxFeedback=     0 0 0 1 // Move handbox? (boolean)",
             "Feedback:Handbox   string       HandboxPort=         COM7 % % % // Serial port for controlling Handbox",
             "Feedback:NMES      int          NMESFeedback=        0 % 0 1 // Enable neuromuscular stim feedback? (boolean)",
             "Feedback:NMES      floatlist    NMESRange=           {Mid Max} 7 15 0 0 % //Midpoint and Max stim intensities",
@@ -36,7 +36,7 @@ class FeedbackApp(object):
             #"SpecificState 1 0 0 0", #Define states that are specific to this extension.
             "FBValue    16 0 0 0", #in blocks, 16-bit is max 65536
             "FBBlock   16 0 0 0", #Number of blocks that feedback has been on. Necessary for fake feedback.
-            "FeedbackOn 1 0 0 0", #Whether or not stimuli are currently presented.
+            "Feedback 1 0 0 0", #Whether or not stimuli are currently presented.
         ]
     
     @classmethod
@@ -61,7 +61,10 @@ class FeedbackApp(object):
     @classmethod
     def initialize(cls, app, indim, outdim):
         if int(app.params['ContFeedbackEnable'])==1:
-            if int(app.params['ShowSignalTime']): addstatemonitor(app, 'FeedbackOn')
+            if int(app.params['ShowSignalTime']):
+                app.addstatemonitor('FBValue')
+                app.addstatemonitor('FBBlock')
+                app.addstatemonitor('Feedback')
             
             #===================================================================
             # Load fake data if we will be using fake feedback.
@@ -243,7 +246,7 @@ class FeedbackApp(object):
     @classmethod
     def transition(cls,app,phase):
         if app.params['ContFeedbackEnable'].val:
-            app.states['FeedbackOn'] = phase=='task' or app.params['BaselineFeedback'].val
+            app.states['Feedback'] = phase=='task' or app.params['BaselineFeedback'].val
             #===================================================================
             # Turn transient (i.e. visual) stimuli on/off
             # The other stimuli are not turned on/off so easily.
@@ -251,16 +254,16 @@ class FeedbackApp(object):
             #===================================================================
             if app.params['VisualFeedback'].val:
                 app.stimuli['arrow'].on = phase == 'gocue'
-                app.stimuli['red'].on = app.states['FeedbackOn']
-                app.stimuli['green'].on = app.states['FeedbackOn']
+                app.stimuli['red'].on = app.states['Feedback']
+                app.stimuli['green'].on = app.states['Feedback']
                 if int(app.params['VisualType'])==0:
-                    for bar in app.bars: bar.rectobj.parameters.on = app.states['FeedbackOn']
+                    for bar in app.bars: bar.rectobj.parameters.on = app.states['Feedback']
                     if app.params.has_key('ContingencyEnable') and app.params['ContingencyEnable'].val:
-                        app.stimuli['target_box'].on = app.states['FeedbackOn']
+                        app.stimuli['target_box'].on = app.states['Feedback']
                 elif int(app.params['VisualType'])==1:
-                    app.stimuli['cursor1'].on = app.states['FeedbackOn']
+                    app.stimuli['cursor1'].on = app.states['Feedback']
             
-            if not app.states['FeedbackOn']:        
+            if not app.states['Feedback']:        
                 if app.params['AudioFeedback'].val:
                     for snd in app.sounds: snd.vol=0.0
                 if int(app.params['NMESFeedback']): app.nmes.intensity = 0
@@ -293,7 +296,7 @@ class FeedbackApp(object):
     
     @classmethod
     def process(cls,app,sig):
-        if int(app.params['ContFeedbackEnable'])==1 and app.states['FeedbackOn']:
+        if int(app.params['ContFeedbackEnable'])==1 and app.states['Feedback']:
             #Assumes that sig ranges from extremes of -10 to +10
             #Your signal processing should be designed so the input signal varies as such.
             if app.params['FakeFeedback'].val:
@@ -320,7 +323,7 @@ class FeedbackApp(object):
             
             if app.params['VisualFeedback'].val:
                 if int(app.params['VisualType'])==0:#bar
-                    app.updatebars(0.0 if (app.states['Baseline'] and app.params['BaselineConstant']) else x)
+                    app.updatebars(0.0 if (app.in_phase('task') and app.params['BaselineConstant']) else x)
                     #for bar in app.bars: bar.rectobj.parameters.color = [1-app.states['InRange'], app.states['InRange'], 0]
                 elif int(app.params['VisualType'])==1:#cursor
                     new_pos = app.stimuli['cursor1'].position
@@ -328,7 +331,7 @@ class FeedbackApp(object):
                     new_pos[1] = min(new_pos[1],app.p[1,1])
                     new_pos[1] = max(new_pos[1],app.p[0,1])
                     app.stimuli['cursor1'].position = app.positions['origin'].A.ravel().tolist()\
-                        if app.states['Baseline'] and app.params['BaselineConstant'] else new_pos
+                        if app.in_phase('task') and app.params['BaselineConstant'] else new_pos
                         
                 #===============================================================
                 # Modify the color of the visual cues if we know the range.
@@ -343,21 +346,21 @@ class FeedbackApp(object):
                 app.fader_val = app.fader_val + app.fader_speed * x
                 app.fader_val = min(1, app.fader_val)
                 app.fader_val = max(-1, app.fader_val)
-                if app.states['Baseline'] and app.params['BaselineConstant']: app.fader_val = 0
+                if app.in_phase('task') and app.params['BaselineConstant']: app.fader_val = 0
                 app.sounds[0].vol = 0.5 * (1 - app.fader_val)
                 app.sounds[1].vol = 0.5 * (1 + app.fader_val)
             
             if app.params['HandboxFeedback'].val:
                 angle = app.handbox.position
                 angle = angle + app.hand_speed * x
-                if app.states['Baseline'] and app.params['BaselineConstant']: angle = 45
+                if app.in_phase('task') and app.params['BaselineConstant']: angle = 45
                 app.handbox.position = angle
                 
             if app.params['NMESFeedback'].val:
                 app.nmes_i = app.nmes_i + app.nmes_speed * x
                 app.nmes_i = min(app.nmes_i, app.nmes_max)
                 app.nmes_i = max(app.nmes_i, 2*app.nmes_baseline - app.nmes_max, 0)
-                if app.states['Baseline'] and app.params['BaselineConstant']:
+                if app.in_phase('task') and app.params['BaselineConstant']:
                     if abs(app.nmes_i-app.nmes_baseline)<1: app.nmes_i = app.nmes_baseline
                     elif app.nmes_i > app.nmes_baseline: app.nmes_i = app.nmes_i - app.nmes_speed
                     elif app.nmes_i < app.nmes_baseline: app.nmes_i = app.nmes_i + app.nmes_speed

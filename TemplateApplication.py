@@ -49,8 +49,8 @@ class BciApplication(BciGenericApplication):
 			"PythonApp:Design	int		AlternateCues=    0     0     0   1  // Alternate target classes (true) or choose randomly (boolean)",
 			"PythonApp:Design  float	IntertrialDur=	  0.5   0.5   0.0 100.0 // Intertrial duration in seconds",
 			"PythonApp:Design  float	BaselineDur=		4.0   4.0   0.0 100.0 // Baseline duration in seconds",
-			"PythonApp:Design  float	TaskDur=			6.0   6.0   0.0 100.0 // Task duration in seconds (unless contingency or stim)",
-			"PythonApp:Design  float	TaskRand=			3.0   3.0   0.0 100.0 // Task duration in seconds (unless contingency or stim)",
+			"PythonApp:Design  float	TaskDur=			6.0   6.0   0.0 100.0 // Min task duration in seconds (unless contingency)",
+			"PythonApp:Design  float	TaskRand=			3.0   3.0   0.0 100.0 // Additional randomization in seconds (unless contingency)",
 			"PythonApp:Display  int		ScreenId=		   -1	-1	 %   %  // on which screen should the stimulus window be opened - use -1 for last",
 			"PythonApp:Display  float	WindowSize=		 0.8   1.0   0.0 1.0 // size of the stimulus window, proportional to the screen",
 			]
@@ -62,13 +62,14 @@ class BciApplication(BciGenericApplication):
 		states = [
 			#===================================================================
 			# "Intertrial 1 0 0 0",
-			"Baseline 1 0 0 0",
+			# "Baseline 1 0 0 0",
 			# "GoCue 1 0 0 0",
-			"Task 1 0 0 0",
+			# "Task 1 0 0 0",
 			# "Response 1 0 0 0",
 			# "StopCue 1 0 0 0",
 			"TargetCode 4 0 0 0",
 			"TaskNBlocks 12 0 0 0",
+			"TrialPhase 4 0 0 0",
 			#===================================================================
 		]
 		states.extend(ContingencyApp.states)
@@ -134,6 +135,8 @@ class BciApplication(BciGenericApplication):
 			addstatemonitor(self, 'CurrentBlock')
 			addstatemonitor(self, 'CurrentTrial')
 			addstatemonitor(self, 'TargetCode')
+			addstatemonitor(self, 'TaskNBlocks')
+			addstatemonitor(self, 'TrialPhase')
 			addphasemonitor(self, 'phase', showtime=True)
 
 			m = addstatemonitor(self, 'fs_reg')
@@ -200,20 +203,21 @@ class BciApplication(BciGenericApplication):
 		#=======================================================================
 		# #Update some states
 		# self.states['Intertrial'] = int(phase in ['intertrial'])
-		self.states['Baseline'] = int(phase in ['baseline'])
+		# self.states['Baseline'] = int(phase in ['baseline'])
 		# self.states['GoCue'] = int(phase in ['gocue'])
-		self.states['Task'] = int(phase in ['task'])
+		# self.states['Task'] = int(phase in ['task'])
 		# self.states['Response']  = int(phase in ['response'])
 		# self.states['StopCue']  = int(phase in ['stopcue'])
 		#=======================================================================
 		
 		if phase == 'intertrial':
-			pass
+			self.states['TrialPhase'] = 0
 			
 		elif phase == 'baseline':
-			pass
+			self.states['TrialPhase'] = 1
 		
 		elif phase == 'gocue':
+			self.states['TrialPhase'] = 2
 			if int(self.params['AlternateCues']): self.states['TargetCode'] = 1 + self.states['CurrentTrial'] % self.nclasses
 			else: self.states['TargetCode'] = randint(1,self.nclasses)
 			
@@ -221,6 +225,7 @@ class BciApplication(BciGenericApplication):
 			self.stimuli['cue'].text = self.params['GoCueText'][t-1]
 			
 		elif phase == 'task':
+			self.states['TrialPhase'] = 3
 			if int(self.params['ContingencyEnable']):
 				self.states['TaskNBlocks'] = 0
 			else:
@@ -228,10 +233,12 @@ class BciApplication(BciGenericApplication):
 				self.states['TaskNBlocks'] = task_length * self.eegfs / self.spb
 			
 		elif phase == 'response':
-			pass
+			self.states['TrialPhase'] = 4
 		
 		elif phase == 'stopcue':
+			self.states['TrialPhase'] = 5
 			self.stimuli['cue'].text = "Relax"
+			self.states['TargetCode'] = 0
 			
 		self.stimuli['cue'].on = (phase in ['gocue', 'stopcue'])
 		
@@ -262,6 +269,7 @@ class BciApplication(BciGenericApplication):
 			
 		#If we are in Response and we are using ERPApp
 		if self.in_phase('response') and int(self.params['ERPDatabaseEnable']):
+			#Progress from Response to stopcue if the ERP has been collected.
 			if self.states['ERPCollected']: self.change_phase('stopcue')
 	
 	#############################################################

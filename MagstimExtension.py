@@ -12,7 +12,7 @@ from AppTools.StateMonitors import addstatemonitor
 
 class MagstimApp(object):
     params = [
-            "PythonApp:Magstim        int        MSEnable= 1 1 0 1 // Enable: 0 no, 1 yes (boolean)",
+            "PythonApp:Magstim        int        MSEnable= 0 0 0 1 // Enable: 0 no, 1 yes (boolean)",
             "PythonApp:Magstim        string    MSSerialPort= COM4 % % % // Serial port for controlling Magstim",
             "PythonApp:Magstim        int        MSTriggerType= 0 0 0 2 // Trigger by: 0 SerialPort, 1 Contec1, 2 Contec2 (enumeration)",
             "PythonApp:Magstim        int        MSReqStimReady= 0 0 0 1 // Require ready response to trigger: 0 no, 1 yes (boolean)",
@@ -53,6 +53,7 @@ class MagstimApp(object):
             app.magstim.intensityb = app.params['MSIntensityB'].val
             app.magstim.ISI = app.params['MSPulseInterval'].val
             #app.magstim.armed = True
+            app.magstim.remocon = False
             
             if app.magstim.ISI > 0:
                 n_trials = app.params['TrialsPerBlock'].val
@@ -62,10 +63,10 @@ class MagstimApp(object):
                 if sici_type==2: random.shuffle(app.sici_bool)
                 
             if int(app.params['ShowSignalTime']):
-                addstatemonitor(app, 'MagstimReady')
-                addstatemonitor(app, 'MSIntensityA')
-                addstatemonitor(app, 'MSIntensityB')
-                addstatemonitor(app, 'ISIx10')
+                app.addstatemonitor('MagstimReady')
+                app.addstatemonitor('MSIntensityA')
+                app.addstatemonitor('MSIntensityB')
+                app.addstatemonitor('ISIx10')
     
     @classmethod
     def halt(cls,app):

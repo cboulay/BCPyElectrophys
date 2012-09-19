@@ -6,7 +6,7 @@ class Template(object):
     params = [
               #"Tab:SubSection DataType Name= Value DefaultValue LowRange HighRange // Comment (identifier)",
               #See further details http://bci2000.org/wiki/index.php/Technical_Reference:Parameter_Definition
-            "PythonApp:Template        int        TemplateEnable= 1 1 0 1 // Enable: 0 no, 1 yes (boolean)",
+            "PythonApp:Template        int        TemplateEnable= 0 0 0 1 // Enable: 0 no, 1 yes (boolean)",
         ]
     states = [
               #Name Length(nBits up to 32) Value ByteLocation(in state vector) BitLocation(0 to 7) CRLF

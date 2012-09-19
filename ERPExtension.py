@@ -18,7 +18,9 @@ import threading
 import numpy as np
 #import random
 #import time
+from BCPy2000.BCI2000Tools.FileReader import ListDatFiles
 import os
+import sys
 sys.path.append(os.path.abspath('d:/tools/eerf/python/eerf'))
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "eerf.settings")
 from api.models import *
@@ -33,6 +35,25 @@ class ERPThread(threading.Thread):
         self.queue = queue
         self.app.subject = Subject.objects.get_or_create(name=self.app.params['SubjectName'])[0]# Get our subject from the DB API.
         self.app.period = self.app.subject.get_or_create_recent_period(delay=0)# Get our period from the DB API.
+        self.app.subject.periods.update()
+        self.app.period = self.app.subject.periods.order_by('-datum_id').all()[0]
+        #Create a string of where this file is stored, what the period number is, and what the previous trial number is.
+        last_trial_number = self.app.period.trials.order_by('datum_id').all()[0].number if self.app.period.trials.count() >0 else 0
+        files = ListDatFiles(self.app.params['DataDirectory'] + '/' + self.app.params['SubjectName'] + self.app.params['SubjectSession'])
+        if len(files)>0:
+            fname = files[-1]
+            fname = fname.replace(fname[-6:-4], str(int(fname[-6:-4])+1))
+        else:
+            fname = '%s/%s%s/%sS%sR01.dat' % (
+                          self.app.params['DataDirectory'],
+                          self.app.params['SubjectName'], self.app.params['SubjectSession'],
+                          self.app.params['SubjectName'], self.app.params['SubjectSession'])
+        log_entry = "%s opened for period %i after trial %i" % ( 
+                       fname, 
+                       self.app.period.number, 
+                       last_trial_number)
+        #Store the string in a subject log.
+        SubjectLog.objects.create(subject=self.app.subject, entry=log_entry)
         
     def run(self):
         while True:
@@ -80,7 +101,11 @@ class ERPThread(threading.Thread):
                     if value.shape[0] != len(self.app.params['ERPChan']):
                         value = value.T
                     my_store.data = value #this will set erp, n_channels and n_samples and save.
-                    
+                    self.app.states['ERPCollected'] = True
+                    #===========================================================
+                    # last_trial = self.app.period.trials.order_by('-datum_id').all()[0]
+                    # self.app.states['LastTrialNumber'] = int(last_trial.number)
+                    #===========================================================
                     self.app.period.extend_stop_time()
                     
                 elif key=='default':
@@ -106,7 +131,7 @@ class ERPThread(threading.Thread):
 
 class ERPApp(object):
     params = [
-            "PythonApp:ERPDatabase    int        ERPDatabaseEnable= 1 1 0 1 // Enable: 0 no, 1 yes (boolean)",
+            "PythonApp:ERPDatabase    int        ERPDatabaseEnable= 0 0 0 1 // Enable: 0 no, 1 yes (boolean)",
             "PythonApp:ERPDatabase    list       TriggerInputChan= 1 Trig % % % // Name of channel used to monitor trigger / control ERP window",
             "PythonApp:ERPDatabase    float      TriggerThreshold= 1 1 0 % // Use this threshold to determine ERP time 0",
             #"PythonApp:ERPDatabase   int            UseSoftwareTrigger= 0 0 0 1  // Use phase change to determine trigger onset (boolean)",
@@ -119,6 +144,7 @@ class ERPApp(object):
     states = [
             "LastERPVal 16 0 0 0", #Last ERP's feature value
             "ERPCollected 1 0 0 0", #Whether or not the ERP was collected this trial.
+            #"LastTrialNumber 24 0 0 0",
         ]
     
     @classmethod
@@ -167,6 +193,9 @@ class ERPApp(object):
     @classmethod
     def initialize(cls, app, indim, outdim):
         if int(app.params['ERPDatabaseEnable'])==1:
+            if int(app.params['ShowSignalTime']):
+                app.addstatemonitor('LastERPVal')
+                app.addstatemonitor('ERPCollected')
                         
             #===================================================================
             # Prepare the buffers for saving the data
@@ -222,7 +251,9 @@ class ERPApp(object):
     @classmethod
     def stoprun(cls,app):
         if int(app.params['ERPDatabaseEnable'])==1:
-            Session.object_session(app.period).flush()
+            last_trial_n = app.period.trials.order_by('-datum_id').all()[0].number if app.period.trials.count()>0 else 0
+            log_entry = "Run stopped for period %i after trial %i" % (app.period.number, last_trial_n)
+            SubjectLog.objects.create(subject=app.subject, entry=log_entry)
     
     @classmethod
     def transition(cls,app,phase):
@@ -231,7 +262,7 @@ class ERPApp(object):
                 pass
                 
             elif phase == 'baseline':
-                pass
+                app.states['ERPCollected'] = False
             
             elif phase == 'gocue':
                 pass
@@ -243,7 +274,7 @@ class ERPApp(object):
                 pass
             
             elif phase == 'stopcue':
-                app.states['ERPCollected'] = False
+                pass
     
     @classmethod
     def process(cls,app,sig):
@@ -256,7 +287,6 @@ class ERPApp(object):
                 data = app.leaky_trap.read()
                 data = data[:,-1*(app.pre_stim_samples+app.post_stim_samples+n_excess):-1*n_excess]
                 app.erp_thread.queue.put({'save_trial':data})
-                app.states['ERPCollected'] = True
                 app.trig_trap.reset()
                 
             if app.changed('LastERPVal'):

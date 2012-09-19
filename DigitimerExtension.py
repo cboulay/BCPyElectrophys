@@ -10,7 +10,7 @@ import pygame, pygame.locals
 
 class DigitimerApp(object):
     params = [
-            "PythonApp:Digitimer        int        DigitimerEnable= 1 1 0 1 // Enable: 0 no, 1 yes (boolean)",
+            "PythonApp:Digitimer        int        DigitimerEnable= 0 0 0 1 // Enable: 0 no, 1 yes (boolean)",
             "PythonApp:Digitimer        int        DigiTriggerType= 0 0 0 1 // Trigger through: 0 Contec1, 1 Contec2 (enumeration)",
             "PythonApp:Digitimer        float      DigiISIMin= 6 6 2 % // Minimum time s between stimuli",
         ]

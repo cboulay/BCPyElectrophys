@@ -19,7 +19,7 @@ class ContingencyApp(object):
     params = [
               #"Tab:SubSection DataType Name= Value DefaultValue LowRange HighRange // Comment (identifier)",
               #See further details http://bci2000.org/wiki/index.php/Technical_Reference:Parameter_Definition
-            "PythonApp:Contingency    int          ContingencyEnable= 1 1 0 1 // Enable: 0 no, 1 yes (boolean)",
+            "PythonApp:Contingency    int          ContingencyEnable= 0 0 0 1 // Enable: 0 no, 1 yes (boolean)",
             "PythonApp:Contingency    list         ContingentChannel= 1 EDC % % % // Input channel on which the trigger is contingent",
             "PythonApp:Contingency    float        DurationMin= 2.6 2.6 0 % // Duration s which signal must continuously meet criteria before triggering",
             "PythonApp:Contingency    float        DurationRand= 0.3 0.3 0 % // Randomization s around the duration",
@@ -66,10 +66,10 @@ class ContingencyApp(object):
     def initialize(cls, app, indim, outdim):
         if int(app.params['ContingencyEnable'])==1:            
             if int(app.params['ShowSignalTime']):
-                addstatemonitor(app, 'InRange')
-                addstatemonitor(app, 'ContingencyOK')
+                app.addstatemonitor('InRange')
+                app.addstatemonitor('ContingencyOK')
             if int(app.params['ContingencyReset'])==0:
-                addstatemonitor(app, 'msecInRange')
+                app.addstatemonitor('msecInRange')
         
     @classmethod
     def halt(cls,app):
