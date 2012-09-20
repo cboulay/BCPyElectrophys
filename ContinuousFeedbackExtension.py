@@ -10,7 +10,7 @@ class FeedbackApp(object):
               #"Tab:SubSection DataType Name= Value DefaultValue LowRange HighRange // Comment (identifier)",
               #See further details http://bci2000.org/wiki/index.php/Technical_Reference:Parameter_Definition
             "Feedback:Design    int          ContFeedbackEnable=  0 0 0 1 // Enable: 0 no, 1 yes (boolean)",
-            "Feedback:Design    list         FeedbackChannels=    1 EDC % % % // Channel for feedback (max 1 channel for now)",
+            "Feedback:Design    list         FeedbackChannels=    1 EDC_AAA % % % // Channel for feedback (max 1 dimension for now)",
             #Sometimes we want to save some data (via ERPExtension) that is not fed back,
             #so the signal processing module will pass in more data than we need for feedback. Thus we need to select FeedbackChannels.
             "Feedback:Design    int          BaselineFeedback=    0 % % % // Should feedback be provided outside task? (boolean)",
@@ -100,6 +100,7 @@ class FeedbackApp(object):
                 arrow = PolygonTexture(frame=b, vertices=((0.22,0.35),(0,0.35),(0.5,0),(1,0.35),(0.78,0.35),(0.78,0.75),(0.22,0.75),),\
                                     color=(1,1,1), on=False, position=center)
                 app.stimulus('arrow', z=4.5, stim=arrow)#Register the arrow stimulus.
+                
                 b.scale(x=4.0, y=2.5)#Reset the box
                 b.anchor='center'#Reset the box
                 
@@ -116,6 +117,7 @@ class FeedbackApp(object):
                 app.positions['green'] = np.matrix(b.position)
                 green = Block(position=b.position, size=b.size, color=(0.1,1,0.1))#, on=False
                 app.stimulus('green', z=2, stim=green)
+                
                 b.scale(y=1.0/targth, x=1.0/targtw)#reset b
                 b.anchor='center'#reset b
             
@@ -125,40 +127,53 @@ class FeedbackApp(object):
                 app.positions['red'] = np.matrix(b.position)
                 red = Block(position=b.position, size=b.size, color=(1,0.1,0.1))#, on=False
                 app.stimulus('red', z=2, stim=red)
+                
                 b.scale(y=1.0/targth, x=1.0/targtw)#reset b
                 b.anchor='center'#reset b
                 
+                #===========================================================
+                # The input signal will vary from -10 to +10, where 1 is the variance (spectral) or 10 is MVC (EMG_AAA)
+                # The contingency parameter operates in this range (-10 +10)
+                # However, the feedback app operates in the range -3.2767 to +3.2767 (16-bit / 1000)
+                # So, for feedback, the input signal gets divided by 3 (and is clipped)
+                #===========================================================
+                plot_min=-3.2767#The input signal will vary from -3.2767 to +3.2767
+                plot_max=3.2767
+                app.m=app.scrh/(plot_max-plot_min)#Conversion factor from signal amplitude to pixels.
+                app.b_offset=app.scrh/2.0 #Input 0.0 should be at this pixel value.
+                    
                 #===============================================================
                 # The feedback bar.
                 #===============================================================
                 if int(app.params['VisualType'])==0:
-                    #===========================================================
-                    # The input signal will vary from -10 to +10, where 1 is the variance (spectral) or 10 is MVC
-                    # The contingency parameter operates in this range (-10 +10)
-                    # However, the feedback app operates in the range -3.2767 to +3.2767
-                    # So, for feedback, the input signal gets divided by 3 (and is clipped)
-                    #===========================================================
-                    plot_min=-3.2767#The input signal will vary from -3.2767 to +3.2767
-                    plot_max=3.2767
-                    m=app.scrh/(plot_max-plot_min)#Conversion factor from signal amplitude to pixels.
-                    b_offset=app.scrh/2.0 #Input 0.0 should be at this pixel value.
-                    app.addbar(color=(0,1,0), pos=(app.scrw/2.0,b_offset), thickness=app.scrw/10, fac=m)
+                   
+                    app.addbar(color=(0,1,0), pos=(app.scrw/2.0,app.b_offset), thickness=app.scrw/10, fac=app.m)
                     app.stimuli['bartext_1'].position=(50,50)
                     #app.stimuli['bartext_1'].color=[1,1,1]
                     app.stimuli['bartext_1'].color=[0,0,0]
-                    if app.params.has_key('ContingencyEnable') and app.params['ContingencyEnable'].val:
-                        target_box = Block(position=(app.scrw/2 - app.scrw/10,m*app.amprange[0]/3.0+b_offset), size=(app.scrw/5,m*(app.amprange[1]-app.amprange[0])/3.0), color=(1,0,0,0.5), anchor='lowerleft')
-                        app.stimulus('target_box', z=1, stim=target_box)
-                
+                    
                 #===============================================================
                 # The feedback cursor.
                 #===============================================================
                 elif int(app.params['VisualType'])==1:
                     app.stimulus('cursor1', z=3, stim=Disc(radius=10, color=(1,1,1), on=False))
                     #Set cursor speed so that it takes entire feedback duration to go from bottom to top at amplitude 1
-                    top_t = app.p[1,1]
-                    bottom_t = app.p[0,1]
+                    top_t = app.positions['green'][(0,1)]
+                    bottom_t = app.positions['red'][(0,1)]
                     app.curs_speed = (top_t - bottom_t) / fbblks #pixels per block
+                    
+                #===============================================================
+                # A box to indicate target range when using contingency
+                #===============================================================
+                if app.params.has_key('ContingencyEnable')\
+                    and app.params['ContingencyEnable'].val\
+                    and int(app.params['VisualType']) in (0, 1):
+                    target_box = Block(position=(app.scrw/2 - app.scrw/10,app.m*app.amprange[0][0]/3.0+app.b_offset), 
+                                       size=(app.scrw/5,app.m*(app.amprange[0][1]-app.amprange[0][0])/3.0), 
+                                       color=(1,0,0,0.5), 
+                                       anchor='lowerleft')
+                    app.stimulus('target_box', z=1, stim=target_box)
+                    app.stimuli['target_box'].on = 0
 
             #===================================================================
             # Audio Feedback
@@ -258,7 +273,7 @@ class FeedbackApp(object):
                 app.stimuli['green'].on = app.states['Feedback']
                 if int(app.params['VisualType'])==0:
                     for bar in app.bars: bar.rectobj.parameters.on = app.states['Feedback']
-                    if app.params.has_key('ContingencyEnable') and app.params['ContingencyEnable'].val:
+                    if app.stimuli.has_key('target_box'):
                         app.stimuli['target_box'].on = app.states['Feedback']
                 elif int(app.params['VisualType'])==1:
                     app.stimuli['cursor1'].on = app.states['Feedback']
@@ -281,6 +296,11 @@ class FeedbackApp(object):
                 if app.params['VisualFeedback'].val:
                     app.stimuli['arrow'].color = map(lambda x:int(x==t), [2,1,3])
                     app.stimuli['arrow'].angle = 180*(2 - t)
+                    
+                    if app.stimuli.has_key('target_box'): #and bar or cursor
+                        app.stimuli['target_box'].position = (app.scrw/2 - app.scrw/10,app.m*app.amprange[t-1][0]/3.0+app.b_offset)
+                        app.stimuli['target_box'].size = (app.scrw/5,app.m*(app.amprange[t-1][1]-app.amprange[t-1][0])/3.0)
+                                
                 if app.params['AudioFeedback'].val:
                     app.sounds[1-t].vol=0.0
                     app.sounds[t].vol=1.0
@@ -323,15 +343,15 @@ class FeedbackApp(object):
             
             if app.params['VisualFeedback'].val:
                 if int(app.params['VisualType'])==0:#bar
-                    app.updatebars(0.0 if (app.in_phase('task') and app.params['BaselineConstant']) else x)
+                    app.updatebars(0.0 if not app.in_phase('task') and app.params['BaselineConstant'] else x)
                     #for bar in app.bars: bar.rectobj.parameters.color = [1-app.states['InRange'], app.states['InRange'], 0]
                 elif int(app.params['VisualType'])==1:#cursor
                     new_pos = app.stimuli['cursor1'].position
-                    new_pos[1] = new_pos[1] + app.curs_speed * x#speed is pixels per block
-                    new_pos[1] = min(new_pos[1],app.p[1,1])
-                    new_pos[1] = max(new_pos[1],app.p[0,1])
+                    new_pos[1] = new_pos[1] + app.curs_speed * x #speed is pixels per block
+                    new_pos[1] = min(new_pos[1],app.positions['green'][(0,1)]) #Never rmove the position beyond the top target
+                    new_pos[1] = max(new_pos[1],app.positions['red'][(0,1)]) #Never move the position beyond the bottom target
                     app.stimuli['cursor1'].position = app.positions['origin'].A.ravel().tolist()\
-                        if app.in_phase('task') and app.params['BaselineConstant'] else new_pos
+                        if not app.in_phase('task') and app.params['BaselineConstant'] else new_pos
                         
                 #===============================================================
                 # Modify the color of the visual cues if we know the range.
@@ -346,21 +366,21 @@ class FeedbackApp(object):
                 app.fader_val = app.fader_val + app.fader_speed * x
                 app.fader_val = min(1, app.fader_val)
                 app.fader_val = max(-1, app.fader_val)
-                if app.in_phase('task') and app.params['BaselineConstant']: app.fader_val = 0
+                if not app.in_phase('task') and app.params['BaselineConstant']: app.fader_val = 0
                 app.sounds[0].vol = 0.5 * (1 - app.fader_val)
                 app.sounds[1].vol = 0.5 * (1 + app.fader_val)
             
             if app.params['HandboxFeedback'].val:
                 angle = app.handbox.position
                 angle = angle + app.hand_speed * x
-                if app.in_phase('task') and app.params['BaselineConstant']: angle = 45
+                if not app.in_phase('task') and app.params['BaselineConstant']: angle = 45
                 app.handbox.position = angle
                 
             if app.params['NMESFeedback'].val:
                 app.nmes_i = app.nmes_i + app.nmes_speed * x
                 app.nmes_i = min(app.nmes_i, app.nmes_max)
                 app.nmes_i = max(app.nmes_i, 2*app.nmes_baseline - app.nmes_max, 0)
-                if app.in_phase('task') and app.params['BaselineConstant']:
+                if not app.in_phase('task') and app.params['BaselineConstant']:
                     if abs(app.nmes_i-app.nmes_baseline)<1: app.nmes_i = app.nmes_baseline
                     elif app.nmes_i > app.nmes_baseline: app.nmes_i = app.nmes_i - app.nmes_speed
                     elif app.nmes_i < app.nmes_baseline: app.nmes_i = app.nmes_i + app.nmes_speed

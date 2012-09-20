@@ -103,6 +103,7 @@ class MagstimApp(object):
                 
             elif phase == 'response':
                 app.magstim.remocon = True
+                #app.magstim.armed = True
                 app.magstim.trigger()
                 app.states['MSIntensityA'] = app.magstim.intensity
                 app.states['MSIntensityB'] = app.magstim.intensityb

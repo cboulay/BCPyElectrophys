@@ -215,11 +215,11 @@ class BciApplication(BciGenericApplication):
 			
 		elif phase == 'baseline':
 			self.states['TrialPhase'] = 1
+			if int(self.params['AlternateCues']): self.states['TargetCode'] = 1 + self.states['CurrentTrial'] % self.nclasses
+			else: self.states['TargetCode'] = randint(1,self.nclasses)
 		
 		elif phase == 'gocue':
 			self.states['TrialPhase'] = 2
-			if int(self.params['AlternateCues']): self.states['TargetCode'] = 1 + self.states['CurrentTrial'] % self.nclasses
-			else: self.states['TargetCode'] = randint(1,self.nclasses)
 			
 			t = self.states['TargetCode']
 			self.stimuli['cue'].text = self.params['GoCueText'][t-1]

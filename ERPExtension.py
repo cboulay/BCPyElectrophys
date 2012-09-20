@@ -281,7 +281,7 @@ class ERPApp(object):
         if int(app.params['ERPDatabaseEnable'])==1:
             app.trig_trap.process(sig[app.trigchan,:])
             app.leaky_trap.process(sig[app.erpchan,:])
-                        
+
             if app.in_phase('response') and app.trig_trap.full():
                 n_excess = (app.trig_trap.nseen-app.trig_trap.sprung_at)-app.trig_trap.nsamples
                 data = app.leaky_trap.read()
@@ -289,15 +289,14 @@ class ERPApp(object):
                 app.erp_thread.queue.put({'save_trial':data})
                 app.trig_trap.reset()
                 
-            if app.changed('LastERPVal'):
-                if int(app.params['ERPFeedbackDisplay'])==2:
-                    x = int(np.int16(app.states['LastERPVal']))
-                    app.updatebars(x,barlist=[app.bars[-1]])
-                    fbthresh = app.params['ERPFeedbackThreshold'].val * app.erp_scale
-                    erp_inrange = (fbthresh>0 and x>=fbthresh) or (fbthresh<0 and x<=fbthresh)
-                    app.stimuli['erp_target_box'].color = [1-erp_inrange, erp_inrange, 0]
-                    n_bars = len(app.bars)
-                    app.stimuli['barrect_' + str(n_bars)].color = [1-erp_inrange, erp_inrange, 0]
+            if int(app.params['ERPFeedbackDisplay'])==2 and app.changed('LastERPVal'):
+                x = int(np.int16(app.states['LastERPVal']))
+                app.updatebars(x,barlist=[app.bars[-1]])
+                fbthresh = app.params['ERPFeedbackThreshold'].val * app.erp_scale
+                erp_inrange = (fbthresh>0 and x>=fbthresh) or (fbthresh<0 and x<=fbthresh)
+                app.stimuli['erp_target_box'].color = [1-erp_inrange, erp_inrange, 0]
+                n_bars = len(app.bars)
+                app.stimuli['barrect_' + str(n_bars)].color = [1-erp_inrange, erp_inrange, 0]
     @classmethod
     def event(cls, app, phasename, event):
         if int(app.params['ERPDatabaseEnable'])==1: pass

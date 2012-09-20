@@ -20,11 +20,11 @@ class ContingencyApp(object):
               #"Tab:SubSection DataType Name= Value DefaultValue LowRange HighRange // Comment (identifier)",
               #See further details http://bci2000.org/wiki/index.php/Technical_Reference:Parameter_Definition
             "PythonApp:Contingency    int          ContingencyEnable= 0 0 0 1 // Enable: 0 no, 1 yes (boolean)",
-            "PythonApp:Contingency    list         ContingentChannel= 1 EDC % % % // Input channel on which the trigger is contingent",
+            "PythonApp:Contingency    list         ContingentChannel= 1 EDC_AAA % % % // Input channel on which the trigger is contingent",
             "PythonApp:Contingency    float        DurationMin= 2.6 2.6 0 % // Duration s which signal must continuously meet criteria before triggering",
             "PythonApp:Contingency    float        DurationRand= 0.3 0.3 0 % // Randomization s around the duration",
             "PythonApp:Contingency    int          ContingencyReset= 1 1 0 1 // Counter resets when exiting range: 0 no, 1 yes (boolean)",
-            "PythonApp:Contingency    floatlist    ContingencyRange= {Min Max} 0.07 0.13 0 0 % //Min and Max for signal amplitude criteria",
+            "PythonApp:Contingency    matrix    ContingencyRange= {1 2} {Min Max} 0.7 1.3 0.0 0.5 0 % % //Row for each target, Cols for Min and Max",
             #"PythonApp:Contingency     int         RangeEnter= 0 0 0 2 // Signal must enter range from: 0 either, 1 below, 2 above (enumeration)",
             
         ]
@@ -58,8 +58,9 @@ class ContingencyApp(object):
             
             #Check that the amplitude range makes sense.
             amprange=app.params['ContingencyRange'].val
-            if len(amprange)!=2: raise EndUserError, "ContingencyRange must have 2 values"
-            if amprange[0]>amprange[1]: raise EndUserError, "ContingencyRange must be in increasing order"
+            if amprange.shape[0] != len(app.params['GoCueText']): raise EndUserError, "ContingencyRange must have entries for each target"
+            if amprange.shape[1]!=2: raise EndUserError, "ContingencyRange must have Min and Max values"
+            if any([ar[(0,0)] > ar[(0,1)] for ar in amprange]): raise EndUserError, "ContingencyRange must be in increasing order"
             app.amprange=np.asarray(amprange,dtype='float64')
     
     @classmethod
@@ -118,7 +119,8 @@ class ContingencyApp(object):
             #===================================================================
             # Update whether or not we are in range based on the signal
             #===================================================================
-            now_in_range = (x >= app.amprange[0]) and (x <= app.amprange[1])
+            targ_ix = int(app.states['TargetCode'])-1 if int(app.states['TargetCode'])>0 else 0
+            now_in_range = (x >= app.amprange[targ_ix][0]) and (x <= app.amprange[targ_ix][1])
             app.states['InRange'] = now_in_range #update state. Used by other modules.
             if app.changed('InRange', only=1) or not now_in_range:
                 app.remember('range_ok') #Resets range_ok unless we were already inrange.
