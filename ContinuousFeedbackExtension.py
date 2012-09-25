@@ -52,7 +52,7 @@ class FeedbackApp(object):
                 if len(nf): raise EndUserError, "FeedbackChannel %s not in module's list of input channel names" % str(nf)
                 app.fbchan = [chn.index(str(x)) for x in fch]
             else:
-                nf = [x for x in pch if x < 1 or x > len(chn) or x != round(x)]
+                nf = [x for x in fch if x < 1 or x > len(chn) or x != round(x)]
                 if len(nf): raise EndUserError, "Illegal FeedbackChannel: %s" % str(nf)
                 app.fbchan = [x-1 for x in fch]      
             

@@ -42,7 +42,7 @@ class BciSignalProcessing(BciGenericSignalProcessing):
 			"PythonSig int HPOrder= 8 8 0 % // HP filter order",
 			"PythonSig float LPCutoffHz= 10 10 0 % // LP filter cutoff frequency in Hz",
 			"PythonSig int LPOrder= 2 2 0 % // LP filter order",
-			"PythonSig float OutputScaleFactor= 0.014285714285714285 1.0 0 % // Try 10/MVC",
+			"PythonSig float OutputScaleFactor= 0.0106530307873 1.0 0 % // Try 10/MVC",
 			"PythonSig float OutputOffset= 0 0 0 % // Add to output",
 		]
 		states = [

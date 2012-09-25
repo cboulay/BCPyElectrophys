@@ -69,7 +69,7 @@ class BciApplication(BciGenericApplication):
 			# "StopCue 1 0 0 0",
 			"TargetCode 4 0 0 0",
 			"TaskNBlocks 12 0 0 0",
-			"TrialPhase 4 0 0 0",
+			#"TrialPhase 4 0 0 0",#TrialPhase unnecessary. Use built-in PresentationPhase
 			#===================================================================
 		]
 		states.extend(ContingencyApp.states)
@@ -136,7 +136,6 @@ class BciApplication(BciGenericApplication):
 			addstatemonitor(self, 'CurrentTrial')
 			addstatemonitor(self, 'TargetCode')
 			addstatemonitor(self, 'TaskNBlocks')
-			addstatemonitor(self, 'TrialPhase')
 			addphasemonitor(self, 'phase', showtime=True)
 
 			m = addstatemonitor(self, 'fs_reg')
@@ -211,21 +210,21 @@ class BciApplication(BciGenericApplication):
 		#=======================================================================
 		
 		if phase == 'intertrial':
-			self.states['TrialPhase'] = 0
+			pass
 			
 		elif phase == 'baseline':
-			self.states['TrialPhase'] = 1
+			pass
 			if int(self.params['AlternateCues']): self.states['TargetCode'] = 1 + self.states['CurrentTrial'] % self.nclasses
 			else: self.states['TargetCode'] = randint(1,self.nclasses)
 		
 		elif phase == 'gocue':
-			self.states['TrialPhase'] = 2
+			pass
 			
 			t = self.states['TargetCode']
 			self.stimuli['cue'].text = self.params['GoCueText'][t-1]
 			
 		elif phase == 'task':
-			self.states['TrialPhase'] = 3
+			pass
 			if int(self.params['ContingencyEnable']):
 				self.states['TaskNBlocks'] = 0
 			else:
@@ -233,10 +232,10 @@ class BciApplication(BciGenericApplication):
 				self.states['TaskNBlocks'] = task_length * self.eegfs / self.spb
 			
 		elif phase == 'response':
-			self.states['TrialPhase'] = 4
+			pass
 		
 		elif phase == 'stopcue':
-			self.states['TrialPhase'] = 5
+			pass
 			self.stimuli['cue'].text = "Relax"
 			self.states['TargetCode'] = 0
 			
