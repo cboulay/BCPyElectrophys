@@ -70,12 +70,8 @@ class MagstimApp(object):
     
     @classmethod
     def halt(cls,app):
-        app.magstim.ISI = 0.0
-        app.magstim.intensityb = 0
-        app.magstim.armed = False
-        app.magstim.remocon = False
         #Clear magstim from memory, which will also clear the serial port.
-        del app.magstim
+        app.magstim.__del__()
     
     @classmethod
     def startrun(cls,app):
