@@ -33,35 +33,16 @@ class ERPThread(threading.Thread):
         threading.Thread.__init__(self)
         self.app = app
         self.queue = queue
-        self.app.subject = Subject.objects.get_or_create(name=self.app.params['SubjectName'])[0]# Get our subject from the DB API.
-        self.app.period = self.app.subject.get_or_create_recent_period(delay=0)# Get our period from the DB API.
-        self.app.subject.periods.update()
-        self.app.period = self.app.subject.periods.order_by('-datum_id').all()[0]
-        #Create a string of where this file is stored, what the period number is, and what the previous trial number is.
-        last_trial_number = self.app.period.trials.order_by('datum_id').all()[0].number if self.app.period.trials.count() >0 else 0
-        files = ListDatFiles(self.app.params['DataDirectory'] + '/' + self.app.params['SubjectName'] + self.app.params['SubjectSession'])
-        if len(files)>0:
-            fname = files[-1]
-            fname = fname.replace(fname[-6:-4], str(int(fname[-6:-4])+1))
-        else:
-            fname = '%s/%s%s/%sS%sR01.dat' % (
-                          self.app.params['DataDirectory'],
-                          self.app.params['SubjectName'], self.app.params['SubjectSession'],
-                          self.app.params['SubjectName'], self.app.params['SubjectSession'])
-        log_entry = "%s opened for period %i after trial %i" % ( 
-                       fname, 
-                       self.app.period.number, 
-                       last_trial_number)
-        #Store the string in a subject log.
-        SubjectLog.objects.create(subject=self.app.subject, entry=log_entry)
-        
+
+    #The app must have setup the subject and period before the thread can be run.
     def run(self):
         while True:
             try:#Get a message from the queue
-                msg = self.queue.get(True, 0.8)
+                msg = self.queue.get(True, 0.5)
             except:#Queue is empty -> Do the default action.
                 self.queue.put({'default': 0})
-            else:#We got a message
+                msg = self.queue.get(True, 0.5)
+            finally:#We got a message
                 key = msg.keys()[0]
                 value = msg[key]
                 if key=='save_trial':
@@ -209,6 +190,14 @@ class ERPApp(object):
             app.trig_trap = SigTools.Buffering.trap(app.post_stim_samples, 1, trigger_channel=0, trigger_threshold=app.trigthresh)
             
             #===================================================================
+            # Prepare the models from the database.
+            #===================================================================
+            app.subject = Subject.objects.get_or_create(name=app.params['SubjectName'])[0]
+            app.period = app.subject.get_or_create_recent_period(delay=0)
+            app.subject.periods.update()
+            app.period = app.subject.periods.order_by('-datum_id').all()[0]
+                        
+            #===================================================================
             # Use a thread for database interactions because sometimes they will be slow.
             # (saving a trial also calculates all of that trial's features)
             #===================================================================
@@ -247,6 +236,25 @@ class ERPApp(object):
     def startrun(cls,app):
         if int(app.params['ERPDatabaseEnable'])==1:
             app.states['ERPCollected'] = False
+            
+            #===================================================================
+            # Create a string of where this file is stored, what the period number is, and what the previous trial number is.
+            #===================================================================
+            last_trial_number = app.subject.data.order_by('-datum_id').all()[0].number if app.subject.data.count() >0 else 0
+            files = ListDatFiles(app.params['DataDirectory'] + '/' + app.params['SubjectName'] + app.params['SubjectSession'])
+            if len(files)>0:
+                fname = files[-1]
+                fname = fname.replace(fname[-6:-4], str(int(fname[-6:-4])+1))
+            else:
+                fname = '%s/%s%s/%sS%sR01.dat' % (
+                              app.params['DataDirectory'],
+                              app.params['SubjectName'], app.params['SubjectSession'],
+                              app.params['SubjectName'], app.params['SubjectSession'])
+            log_entry = "%s opened for period %i after trial %i" % ( 
+                           fname, 
+                           app.period.number, 
+                           last_trial_number)
+            SubjectLog.objects.create(subject=app.subject, entry=log_entry)#Store the string in a subject log.
         
     @classmethod
     def stoprun(cls,app):
