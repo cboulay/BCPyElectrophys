@@ -23,7 +23,7 @@ import os
 import sys
 sys.path.append(os.path.abspath('d:/tools/eerf/python/eerf'))
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "eerf.settings")
-from api.models import *
+from eerfd.models import *
 
 from AppTools.Shapes import Block
 import SigTools
@@ -53,16 +53,10 @@ class ERPThread(threading.Thread):
                     my_trial = Datum.objects.create(subject=self.app.subject,
                                                     span_type='trial'
                                                     )
-                    self.app.period.trials.add(my_trial)
+                    #self.app.period.trials.add(my_trial)
                     
-                    #Copy relevant detail values from self.app.period to my_trial
-                    per_details = self.app.period.detail_values_dict()
-                    if int(self.app.params['ERPFeedbackDisplay']):
-                        for kk in per_details:
-                            if kk in ['BG_start_ms','BG_stop_ms'] or\
-                                (kk in ['MEP_start_ms','MEP_stop_ms'] and 'MEP' in self.app.params['ERPFeedbackFeature']) or\
-                                (kk in ['MR_start_ms','MR_stop_ms','HR_start_ms','HR_stop_ms'] and 'HR' in self.app.params['ERPFeedbackFeature']):
-                                my_trial.update_ddv(kk,per_details[kk])
+                    #Copy detail values from self.app.period to my_trial (if they exist)
+                    #my_trial.copy_details_from(self.app.period)
                     
                     #Add detail values from the experimental conditions.
                     my_trial.update_ddv('Task_condition',str(self.app.states['TargetCode']))
@@ -74,7 +68,7 @@ class ERPThread(threading.Thread):
                             my_trial.update_ddv('TMS_powerB',str(self.app.magstim.intensityb))
                             my_trial.update_ddv('TMS_ISI',str(self.app.magstim.ISI))
                     
-                    #Save the data store.
+                    #Save the erp data to datumstore.
                     my_store = DatumStore(datum=my_trial,
                                           x_vec=self.app.x_vec,
                                           channel_labels=self.app.params['ERPChan'])
@@ -87,15 +81,16 @@ class ERPThread(threading.Thread):
                     # last_trial = self.app.period.trials.order_by('-datum_id').all()[0]
                     # self.app.states['LastTrialNumber'] = int(last_trial.number)
                     #===========================================================
-                    self.app.period.extend_stop_time()
+                    # self.app.period.extend_stop_time()
                     
                 elif key=='default':
                     if int(self.app.params['ERPFeedbackDisplay'])>0:
-                        last_trial = self.app.period.trials.order_by('-datum_id').all()[0] if self.app.period.trials.count()>0 else None
+                        trial_query = self.app.subject.data.filter(span_type__exact=3).order_by('-datum_id')
+                        last_trial = trial_query.all()[0] if trial_query.count()>0 else None
                         if last_trial:
                             feature_name = self.app.params['ERPFeedbackFeature']
                             last_trial.update_ddv('Conditioned_feature_name', feature_name)
-                            last_trial.calculate_value_for_feature_name(feature_name)
+                            last_trial.calculate_value_for_feature_name(feature_name) #This may take a while.
                             feature_value = last_trial.feature_values_dict()[feature_name]
                             feature_value = feature_value * self.app.erp_scale
                             self.app.states['LastERPVal'] = np.uint16(feature_value)
@@ -193,13 +188,15 @@ class ERPApp(object):
             # Prepare the models from the database.
             #===================================================================
             app.subject = Subject.objects.get_or_create(name=app.params['SubjectName'])[0]
-            app.period = app.subject.get_or_create_recent_period(delay=0)
-            app.subject.periods.update()
-            app.period = app.subject.periods.order_by('-datum_id').all()[0]
+            #===================================================================
+            # app.period = app.subject.get_or_create_recent_period(delay=0)
+            # app.subject.periods.update()
+            # app.period = app.subject.periods.order_by('-datum_id').all()[0]
+            #===================================================================
                         
             #===================================================================
             # Use a thread for database interactions because sometimes they will be slow.
-            # (saving a trial also calculates all of that trial's features)
+            # (especially when calculating a trial's features)
             #===================================================================
             app.erp_thread = ERPThread(Queue.Queue(), app)
             app.erp_thread.setDaemon(True) #Dunno, always there in the thread examples.
@@ -250,17 +247,14 @@ class ERPApp(object):
                               app.params['DataDirectory'],
                               app.params['SubjectName'], app.params['SubjectSession'],
                               app.params['SubjectName'], app.params['SubjectSession'])
-            log_entry = "%s opened for period %i after trial %i" % ( 
-                           fname, 
-                           app.period.number, 
-                           last_trial_number)
+            log_entry = "%s opened after trial %i" % (fname, last_trial_number)
             SubjectLog.objects.create(subject=app.subject, entry=log_entry)#Store the string in a subject log.
         
     @classmethod
     def stoprun(cls,app):
         if int(app.params['ERPDatabaseEnable'])==1:
-            last_trial_n = app.period.trials.order_by('-datum_id').all()[0].number if app.period.trials.count()>0 else 0
-            log_entry = "Run stopped for period %i after trial %i" % (app.period.number, last_trial_n)
+            last_trial_n = app.subject.data.order_by('-datum_id').all()[0].number if app.subject.data.count()>0 else 0
+            log_entry = "Run stopped after trial %i" % (last_trial_n)
             SubjectLog.objects.create(subject=app.subject, entry=log_entry)
     
     @classmethod
