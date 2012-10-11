@@ -50,4 +50,4 @@ interested in this package then please contact me directly.
 
 This extension enables storing of ERPs into a custom database, and then
 possibly providing feedback about the amplitude of an ERP feature. This
-extension requires my [EERF python](https://github.com/cboulay/EERF/tree/master/python) repo.
+extension requires my [EERF python](https://github.com/cboulay/EERF) repo.
