@@ -13,7 +13,7 @@ from AppTools.StateMonitors import addstatemonitor
 class MagstimApp(object):
     params = [
             "PythonApp:Magstim        int        MSEnable= 0 0 0 1 // Enable: 0 no, 1 yes (boolean)",
-            "PythonApp:Magstim        string    MSSerialPort= COM6 % % % // Serial port for controlling Magstim",
+            "PythonApp:Magstim        string    MSSerialPort= COM4 % % % // Serial port for controlling Magstim",
             "PythonApp:Magstim        int        MSTriggerType= 0 0 0 2 // Trigger by: 0 SerialPort, 1 Contec1, 2 Contec2 (enumeration)",
             "PythonApp:Magstim        int        MSReqStimReady= 0 0 0 1 // Require ready response to trigger: 0 no, 1 yes (boolean)",
             "PythonApp:Magstim        float      MSISIMin= 6 6 2 % // Minimum time s between stimuli",
