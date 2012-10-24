@@ -215,18 +215,14 @@ class BciApplication(BciGenericApplication):
 			pass
 			
 		elif phase == 'baseline':
-			pass
 			if int(self.params['AlternateCues']): self.states['TargetCode'] = 1 + self.states['CurrentTrial'] % self.nclasses
 			else: self.states['TargetCode'] = randint(1,self.nclasses)
 		
 		elif phase == 'gocue':
-			pass
-			
 			t = self.states['TargetCode']
 			self.stimuli['cue'].text = self.params['GoCueText'][t-1]
 			
 		elif phase == 'task':
-			pass
 			if int(self.params['ContingencyEnable']):
 				self.states['TaskNBlocks'] = 0
 			else:
@@ -237,7 +233,6 @@ class BciApplication(BciGenericApplication):
 			pass
 		
 		elif phase == 'stopcue':
-			pass
 			self.stimuli['cue'].text = "Relax"
 			self.states['TargetCode'] = 0
 			

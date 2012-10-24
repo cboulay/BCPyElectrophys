@@ -109,7 +109,8 @@ class ERPApp(object):
     params = [
             "PythonApp:ERPDatabase    int        ERPDatabaseEnable= 0 0 0 1 // Enable: 0 no, 1 yes (boolean)",
             "PythonApp:ERPDatabase    list       TriggerInputChan= 1 Trig % % % // Name of channel used to monitor trigger / control ERP window",
-            "PythonApp:ERPDatabase    float      TriggerThreshold= 1 1 0 % // Use this threshold to determine ERP time 0",
+            #"PythonApp:ERPDatabase    float      TriggerThreshold= 1 1 0 % // Use this threshold to determine ERP time 0",
+            "PythonApp:ERPDatabase    floatlist      TriggerThreshold= 1 1 1 0 % // Use this threshold to determine ERP time 0",
             #"PythonApp:ERPDatabase   int            UseSoftwareTrigger= 0 0 0 1  // Use phase change to determine trigger onset (boolean)",
             "PythonApp:ERPDatabase    list       ERPChan= 1 EDC % % % // Channels to store in database",
             "PythonApp:ERPDatabase    floatlist  ERPWindow= {Start Stop} -500 500 0 % % // Stored window, relative to trigger onset, in millesconds",
@@ -182,7 +183,7 @@ class ERPApp(object):
             app.post_stim_samples = SigTools.msec2samples(app.erpwin[1], app.eegfs)
             app.pre_stim_samples = SigTools.msec2samples(np.abs(app.erpwin[0]), app.eegfs)
             app.leaky_trap=SigTools.Buffering.trap(app.pre_stim_samples + app.post_stim_samples + 5*app.spb, len(app.params['ERPChan']), leaky=True)
-            app.trig_trap = SigTools.Buffering.trap(app.post_stim_samples, 1, trigger_channel=0, trigger_threshold=app.trigthresh)
+            app.trig_trap = SigTools.Buffering.trap(app.post_stim_samples, 1, trigger_channel=0, trigger_threshold=app.trigthresh[0])
             
             #===================================================================
             # Prepare the models from the database.
@@ -267,7 +268,7 @@ class ERPApp(object):
                 app.states['ERPCollected'] = False
             
             elif phase == 'gocue':
-                pass
+                app.trig_trap.trigger_threshold = app.trigthresh[app.states['TargetCode']-1] if len(app.trigthresh) >= app.states['TargetCode'] else app.trigthresh[-1]
                 
             elif phase == 'task':
                 pass
