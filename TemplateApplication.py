@@ -46,6 +46,8 @@ class BciApplication(BciGenericApplication):
 		#See further details http://bci2000.org/wiki/index.php/Technical_Reference:Parameter_Definition
 		params = [
 			"PythonApp:Design	list	GoCueText=		 2 Imagery Rest % % % // Text for cues (max 2 targets for now)",
+			"PythonApp:Design   float	GoCueDur=	  1.0   1.0   0.0 100.0 // GoCue duration in seconds",
+			"PythonApp:Design   float	StopCueDur=	  1.0   1.0   0.0 100.0 // StopCue duration in seconds",
 			"PythonApp:Design	int		AlternateCues=    0     0     0   1  // Alternate target classes (true) or choose randomly (boolean)",
 			"PythonApp:Design  float	IntertrialDur=	  0.5   0.5   0.0 100.0 // Intertrial duration in seconds",
 			"PythonApp:Design  float	BaselineDur=		4.0   4.0   0.0 100.0 // Baseline duration in seconds",
@@ -188,11 +190,11 @@ class BciApplication(BciGenericApplication):
 		# define phase machine using calls to self.phase and self.design
 		self.phase(name='intertrial', next='baseline', duration=self.params['IntertrialDur'].val*1000.0)
 		self.phase(name='baseline', next='gocue', duration=self.params['BaselineDur'].val*1000.0)
-		self.phase(name='gocue', next='task', duration=1000)
+		self.phase(name='gocue', next='task', duration=self.params['GoCueDur'].val*1000.0)
 		self.phase(name='task', next='response',duration=None)
 		self.phase(name='response', next='stopcue',\
 				duration=None if int(self.params['ERPDatabaseEnable']) else 100)
-		self.phase(name='stopcue', next='intertrial', duration=1000)
+		self.phase(name='stopcue', next='intertrial', duration=self.params['StopCueDur'].val*1000.0)
 
 		self.design(start='intertrial', new_trial='intertrial')
 		
