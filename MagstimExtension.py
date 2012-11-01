@@ -17,10 +17,9 @@ class MagstimApp(object):
             "PythonApp:Magstim        int        MSTriggerType= 0 0 0 2 // Trigger by: 0 SerialPort, 1 Contec1, 2 Contec2 (enumeration)",
             "PythonApp:Magstim        int        MSReqStimReady= 0 0 0 1 // Require ready response to trigger: 0 no, 1 yes (boolean)",
             "PythonApp:Magstim        float      MSISIMin= 6 6 2 % // Minimum time s between stimuli",
-            "PythonApp:Magstim        int        MSIntensityA= 50 50 0 100 // TS for single, CS for double",
-            "PythonApp:Magstim        int        MSIntensityB= 0 0 0 100 // TS for double",
-            "PythonApp:Magstim        float    MSPulseInterval= 0 0 0 999 // Double-pulse interval in ms",
-            "PythonApp:Magstim        int        MSSICIType= 0 0 0 2 // Two-pulses: 0 Always, 1 Alternate, 2 Pseudorandom (enumeration)",
+            "PythonApp:Magstim        intlist    MSIntensityA= 1 50 0 0 100 // TS for single, CS for double",
+            "PythonApp:Magstim        intlist    MSIntensityB= 1 0 0 0 100 // TS for double",
+            "PythonApp:Magstim        floatlist    MSPulseInterval= 1 0 0 0 999 // Double-pulse interval in ms",
         ]
     states = [
             "MagstimReady 1 0 0 0", #Whether or not the magstim returns ready
@@ -32,8 +31,10 @@ class MagstimApp(object):
     @classmethod
     def preflight(cls, app, sigprops):
         if int(app.params['MSEnable'])==1:
-            pass
-    
+            app.magstimA = app.params['MSIntensityA'].val if len(app.params['MSIntensityA']) == app.nclasses else [app.params['MSIntensityA'].val[0] for x in range(app.nclasses)]
+            app.magstimB = app.params['MSIntensityB'].val if len(app.params['MSIntensityB']) == app.nclasses else [app.params['MSIntensityB'].val[0] for x in range(app.nclasses)]
+            app.magstimISI = app.params['MSPulseInterval'].val if len(app.params['MSPulseInterval']) == app.nclasses else [app.params['MSPulseInterval'].val[0] for x in range(app.nclasses)]
+            
     @classmethod
     def initialize(cls, app, indim, outdim):
         if int(app.params['MSEnable'])==1:
@@ -49,18 +50,11 @@ class MagstimApp(object):
             app.magstim=Bistim(port=serPort, trigbox=app.trigbox)
             #app.intensity_detail_name = 'dat_TMS_powerA'
             app.magstim.remocon = True
-            app.magstim.intensity = app.params['MSIntensityA'].val
-            app.magstim.intensityb = app.params['MSIntensityB'].val
-            app.magstim.ISI = app.params['MSPulseInterval'].val
+            app.magstim.intensity = app.magstimA[0]
+            app.magstim.intensityb = app.magstimB[0]
+            app.magstim.ISI = app.magstimISI[0]
             #app.magstim.armed = True
             app.magstim.remocon = False
-            
-            if app.magstim.ISI > 0:
-                n_trials = app.params['TrialsPerBlock'].val
-                sici_type = int(app.params['MSSICIType'])
-                app.sici_bool = np.ones(n_trials, dtype=np.bool)
-                if sici_type>0: app.sici_bool[range(0,n_trials,2)]=False
-                if sici_type==2: random.shuffle(app.sici_bool)
                 
             if int(app.params['ShowSignalTime']):
                 app.addstatemonitor('MagstimReady')
@@ -88,8 +82,12 @@ class MagstimApp(object):
             if phase == 'intertrial':
                 app.magstim.remocon = False
                 
-            elif phase == 'baseline':
-                pass
+            elif phase == 'baseline': #TargetCode is set in the application transition to baseline
+                app.magstim.remocon = True
+                app.magstim.intensity = app.magstimA[app.states['TargetCode']-1] if app.magstim.intensity in app.magstimA else app.magstim.intensity
+                app.magstim.intensityb = app.magstimB[app.states['TargetCode']-1] if app.magstim.intensityb in app.magstimB else app.magstim.intensityb
+                app.magstim.ISI = app.magstimISI[app.states['TargetCode']-1] if app.magstim.ISI in app.magstimISI else app.magstim.ISI
+                app.magstim.remocon = False
             
             elif phase == 'gocue':
                 pass
