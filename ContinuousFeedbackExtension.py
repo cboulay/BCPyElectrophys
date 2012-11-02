@@ -10,16 +10,15 @@ class FeedbackApp(object):
               #"Tab:SubSection DataType Name= Value DefaultValue LowRange HighRange // Comment (identifier)",
               #See further details http://bci2000.org/wiki/index.php/Technical_Reference:Parameter_Definition
             "Feedback:Design    int          ContFeedbackEnable=  0 0 0 1 // Enable: 0 no, 1 yes (boolean)",
-            "Feedback:Design    list         FeedbackChannels=    1 EDC_AAA % % % // Channel for feedback (max 1 dimension for now)",
+            "Feedback:Design    list         FeedbackChannels=    1 EDC_AAA % % % // Channel(s) for feedback",
             #Sometimes we want to save some data (via ERPExtension) that is not fed back,
             #so the signal processing module will pass in more data than we need for feedback. Thus we need to select FeedbackChannels.
             "Feedback:Design    int          BaselineFeedback=    0 % % % // Should feedback be provided outside task? (boolean)",
-            "Feedback:Design    int          BaselineConstant=    0 % % % // Should baseline feedback be constant? (boolean)",
+            "Feedback:Design    int          BaselineConstant=    0 % % % // Should non-task feedback be constant? (boolean)",
             "Feedback:Design    int          FakeFeedback=        0 % % % // Make feedback contingent on an external file (boolean)",
             "Feedback:Design    string       FakeFile=            % % % % // Path to fake feedback csv file (inputfile)",
             "Feedback:Visual    int          VisualFeedback=      0 0 0 1 // Show online feedback? (boolean)",
-            "Feedback:Visual    int          VisualType=          0 0 0 2 // Feedback type: 0 bar, 1 cursor, 2 none (enumeration)",
-            "Feedback:Visual    int          UseContForColor=     0 0 0 1 // Feedback color follows contingency: 0 no, 1 yes (boolean)",
+            "Feedback:Visual    intlist      VisualType=          1 0 0 0 2 // Feedback type: 0 bar, 1 cursor, 2 none",
             "Feedback:Audio     int          AudioFeedback=       0 0 0 1 // Play continuous sounds? (boolean)",
             "Feedback:Audio     matrix       AudioWavs=           2 1 300hz.wav 900hz.wav % % % // feedback wavs",
             "Feedback:Handbox   int          HandboxFeedback=     0 0 0 1 // Move handbox? (boolean)",
@@ -42,7 +41,6 @@ class FeedbackApp(object):
     @classmethod
     def preflight(cls, app, sigprops):
         if int(app.params['ContFeedbackEnable'])==1:
-            
             # Check FeedbackChannels
             chn = app.inchannels()
             fch = app.params['FeedbackChannels'].val
@@ -54,9 +52,10 @@ class FeedbackApp(object):
             else:
                 nf = [x for x in fch if x < 1 or x > len(chn) or x != round(x)]
                 if len(nf): raise EndUserError, "Illegal FeedbackChannel: %s" % str(nf)
-                app.fbchan = [x-1 for x in fch]      
-            
-            #TODO: Check if FollowContingency is set that ContingencyEnable is a param and is set.
+                app.fbchan = [x-1 for x in fch]
+                
+            app.fbchan = app.fbchan if len(app.fbchan) == app.nclasses else [fbchan[0] for x in range(app.nclasses)]
+            app.vfb_type = app.params['VisualType'].val if len(app.params['VisualType']) == app.nclasses else [app.params['VisualType'].val[0] for x in range(app.nclasses)]
     
     @classmethod
     def initialize(cls, app, indim, outdim):
@@ -77,7 +76,7 @@ class FeedbackApp(object):
             
             #===================================================================
             # We need to know how many blocks per feedback period
-            # so feedback can be scaled appropriately.
+            # so (non-bar) feedback can be scaled appropriately.
             #===================================================================
             fbdur = app.params['TaskDur'].val #feedback duration
             fbblks = fbdur * app.eegfs / app.spb #feedback blocks
@@ -92,88 +91,57 @@ class FeedbackApp(object):
                 scrsiz = min(app.scrw,app.scrh)
                 siz = (scrsiz, scrsiz)
                 b = box(size=siz, position=(app.scrw/2.0,app.scrh/2.0), sticky=True)
-                center = b.map((0.5,0.5), 'position')
-                #===================================================================
-                # Arrow stimulus for pointing toward the target during gocue.
-                #===================================================================
-                b.scale(x=0.25,y=0.4)#How big should the arrow be, relative to the screen size
-                arrow = PolygonTexture(frame=b, vertices=((0.22,0.35),(0,0.35),(0.5,0),(1,0.35),(0.78,0.35),(0.78,0.75),(0.22,0.75),),\
-                                    color=(1,1,1), on=False, position=center)
-                app.stimulus('arrow', z=4.5, stim=arrow)#Register the arrow stimulus.
+                #b is now our perfect box taking up as much of our screen as we are going to use.
+                #its center is the center pixel, its width and height are equal to the smallest of screen width and height
+                center = b.map((0.5,0.5), 'position') #what is the center pixel value? e.g.([400.0, 225.0])
                 
-                b.scale(x=4.0, y=2.5)#Reset the box
-                b.anchor='center'#Reset the box
+                #===================================================================
+                # TODO: Get the arrows working for more than 2 targets
+                #===================================================================
+                #===============================================================
+                # b.scale(x=0.25,y=0.4)#How big should the arrow be, relative to the screen size
+                # arrow = PolygonTexture(frame=b, vertices=((0.22,0.35),(0,0.35),(0.5,0),(1,0.35),(0.78,0.35),(0.78,0.75),(0.22,0.75),),\
+                #                    color=(1,1,1), on=False, position=center)
+                # app.stimulus('arrow', z=4.5, stim=arrow)#Register the arrow stimulus.
+                # 
+                # b.scale(x=4.0, y=2.5)#Reset the box
+                # b.anchor='center'#Reset the box
+                #===============================================================
                 
                 #===============================================================
-                # Target stimuli.
-                # Targets are rectangles 8% the screen height and the entire width
-                # of the screen, at the top and bottom.
+                # Target rectangles.
                 #===============================================================
-                targth = 0.08#float(app.params['TargetSize'])
                 targtw = 0.5
-                # the green target rectangle
-                b.anchor='top'
-                b.scale(y=targth, x=targtw)
-                app.positions['green'] = np.matrix(b.position)
-                green = Block(position=b.position, size=b.size, color=(0.1,1,0.1))#, on=False
-                app.stimulus('green', z=2, stim=green)
+                for x in range(app.nclasses):
+                    my_target = app.target_range[x]
+                    targ_h = int((my_target[1] - my_target[0]) * scrsiz / 200.0)
+                    targ_y = int(center[1] + (my_target[0] + my_target[1]) * scrsiz / 400.0)
+                    app.stimulus('target_'+str(x), z=2, stim= Block(position = [center[0], targ_y], size = [targtw * scrsiz, targ_h], color=(1, 0.1, 0.1, 0.5), on=False))
                 
-                b.scale(y=1.0/targth, x=1.0/targtw)#reset b
-                b.anchor='center'#reset b
-            
-                # the red target rectangle
-                b.anchor='bottom'
-                b.scale(y=targth, x=targtw)
-                app.positions['red'] = np.matrix(b.position)
-                red = Block(position=b.position, size=b.size, color=(1,0.1,0.1))#, on=False
-                app.stimulus('red', z=2, stim=red)
-                
-                b.scale(y=1.0/targth, x=1.0/targtw)#reset b
-                b.anchor='center'#reset b
-                
-                #===========================================================
-                # The input signal will vary from -10 to +10, where 1 is the variance (spectral) or 10 is MVC (EMG_AAA)
-                # The contingency parameter operates in this range (-10 +10)
-                # However, the feedback app operates in the range -3.2767 to +3.2767 (16-bit / 1000)
-                # So, for feedback, the input signal gets divided by 3 (and is clipped)
-                #===========================================================
-                plot_min=-3.2767#The input signal will vary from -3.2767 to +3.2767
-                plot_max=3.2767
-                app.m=app.scrh/(plot_max-plot_min)#Conversion factor from signal amplitude to pixels.
+                #Our feedback will range from -10 to +10
+                app.m=app.scrh/20.0#Conversion factor from signal amplitude to pixels.
                 app.b_offset=app.scrh/2.0 #Input 0.0 should be at this pixel value.
+                
+                #===============================================================
+                # Add feedback elements
+                #===============================================================
+                app.vfb_keys = []
+                for j in range(app.nclasses):
+                    if app.vfb_type[j]==0: #Bar
+                        app.addbar(color=(0,1,0), pos=(app.scrw/2.0,app.b_offset), thickness=app.scrw/10, fac=app.m)
+                        app.vfb_keys.append('barrect_' + str(len(app.bars)))
+                        app.stimuli['bartext_'+ str(len(app.bars))].position=(50,50)#off in the lower corner
+                        app.stimuli['bartext_'+ str(len(app.bars))].color=[0,0,0]#hide it
+                        
+                    elif app.vfb_type[j]==1: #Cursor
+                        app.stimulus('cursor_'+str(j), z=3, stim=Disc(radius=10, color=(1,1,1), on=False))
+                        app.vfb_keys.append('cursor_'+str(j))
+                        #Set cursor speed so that it takes entire feedback duration to go from bottom to top at amplitude 1 (= 1xvar; =10% ERD; =10%MVC)
+                        app.curs_speed = scrsiz / fbblks #pixels per block
                     
-                #===============================================================
-                # The feedback bar.
-                #===============================================================
-                if int(app.params['VisualType'])==0:
-                   
-                    app.addbar(color=(0,1,0), pos=(app.scrw/2.0,app.b_offset), thickness=app.scrw/10, fac=app.m)
-                    app.stimuli['bartext_1'].position=(50,50)
-                    #app.stimuli['bartext_1'].color=[1,1,1]
-                    app.stimuli['bartext_1'].color=[0,0,0]
-                    
-                #===============================================================
-                # The feedback cursor.
-                #===============================================================
-                elif int(app.params['VisualType'])==1:
-                    app.stimulus('cursor1', z=3, stim=Disc(radius=10, color=(1,1,1), on=False))
-                    #Set cursor speed so that it takes entire feedback duration to go from bottom to top at amplitude 1
-                    top_t = app.positions['green'][(0,1)]
-                    bottom_t = app.positions['red'][(0,1)]
-                    app.curs_speed = (top_t - bottom_t) / fbblks #pixels per block
-                    
-                #===============================================================
-                # A box to indicate target range when using contingency
-                #===============================================================
-                if app.params.has_key('ContingencyEnable')\
-                    and app.params['ContingencyEnable'].val\
-                    and int(app.params['VisualType']) in (0, 1):
-                    target_box = Block(position=(app.scrw/2 - app.scrw/10,app.m*app.amprange[0][0]/3.0+app.b_offset), 
-                                       size=(app.scrw/5,app.m*(app.amprange[0][1]-app.amprange[0][0])/3.0), 
-                                       color=(1,0,0,0.5), 
-                                       anchor='lowerleft')
-                    app.stimulus('target_box', z=1, stim=target_box)
-                    app.stimuli['target_box'].on = 0
+                    elif app.vfb_type[j]==2: #None
+                        app.stimulus('cursor_'+str(j), z=-10, stim=Disc(radius=0, color=(0,0,0,0), on=False))
+                        app.vfb_keys.append('cursor_'+str(j))
 
             #===================================================================
             # Audio Feedback
@@ -244,8 +212,10 @@ class FeedbackApp(object):
     @classmethod
     def startrun(cls,app):
         if int(app.params['ContFeedbackEnable'])==1:
-            if app.params['VisualFeedback'].val and int(app.params['VisualType'])==1:
-                app.stimuli['cursor1'].position = app.positions['origin'].A.ravel().tolist()
+            if 1 in app.vfb_type:
+                for j in range(app.nclasses):
+                    if app.vfb_type[j]==1:
+                        app.stimuli['cursor_'+str(j)].position = app.positions['origin'].A.ravel().tolist()
             if int(app.params['NMESFeedback']):
                 app.nmes_i = 0
                 app.nmes.intensity = 0
@@ -261,106 +231,109 @@ class FeedbackApp(object):
     @classmethod
     def transition(cls,app,phase):
         if app.params['ContFeedbackEnable'].val:
-            app.states['Feedback'] = phase=='task' or app.params['BaselineFeedback'].val
-            #===================================================================
-            # Turn transient (i.e. visual) stimuli on/off
-            # The other stimuli are not turned on/off so easily.
-            # Instead their amplitudes are set by process()
-            #===================================================================
-            if app.params['VisualFeedback'].val:
-                app.stimuli['arrow'].on = phase == 'gocue'
-                app.stimuli['red'].on = app.states['Feedback']
-                app.stimuli['green'].on = app.states['Feedback']
-                if int(app.params['VisualType'])==0:
-                    for bar in app.bars: bar.rectobj.parameters.on = app.states['Feedback']
-                    if app.stimuli.has_key('target_box'):
-                        app.stimuli['target_box'].on = app.states['Feedback']
-                elif int(app.params['VisualType'])==1:
-                    app.stimuli['cursor1'].on = app.states['Feedback']
+            t = app.states['TargetCode'] #What target are we on. TargetCode changes on GoCue transition.
+            app.states['Feedback'] = phase=='task' or app.params['BaselineFeedback'].val#Will we provide feedback this phase?
             
+            #===================================================================
+            # For every transition, we will manage the on/off state of our feedback elements.
+            #===================================================================
+            
+            # Visual feedback elements (bars, cursors, etc)
+            if app.params['VisualFeedback'].val:
+                for j in range(app.nclasses):
+                    this_stim = app.stimuli[app.vfb_keys[j]].on = app.states['Feedback'] and j==t-1
+            
+            # Non-visual feedback.
             if not app.states['Feedback']:        
                 if app.params['AudioFeedback'].val:
                     for snd in app.sounds: snd.vol=0.0
-                if int(app.params['NMESFeedback']): app.nmes.intensity = 0
-                if int(app.params['HandboxFeedback']): app.handbox.position = 45
+                if int(app.params['NMESFeedback']):
+                    app.nmes.intensity = 0
+                if int(app.params['HandboxFeedback']):
+                    app.handbox.position = 45
 
+            #===================================================================
+            # Transition specific feedback management
+            #===================================================================
             if phase == 'intertrial':
                 app.states['FBBlock']=0
-                
             elif phase == 'baseline':
                 pass
-            
-            #Visual and/or auditory cues.
-            elif phase == 'gocue':
-                t = app.states['TargetCode']
-                if app.params['VisualFeedback'].val:
-                    app.stimuli['arrow'].color = map(lambda x:int(x==t), [2,1,3])
-                    app.stimuli['arrow'].angle = 180*(2 - t)
-                    
-                    if app.stimuli.has_key('target_box'): #and bar or cursor
-                        app.stimuli['target_box'].position = (app.scrw/2 - app.scrw/10,app.m*app.amprange[t-1][0]/3.0+app.b_offset)
-                        app.stimuli['target_box'].size = (app.scrw/5,app.m*(app.amprange[t-1][1]-app.amprange[t-1][0])/3.0)
-                                
+            elif phase == 'gocue':#Visual and/or auditory cues.
+                if app.params['VisualFeedback'].val: #Visual targets
+                    for j in range(app.nclasses):#Update which targets are on
+                        app.stimuli['target_'+str(j)].on = j==t-1
+                    #===========================================================
+                    # app.stimuli['arrow'].color = map(lambda x:int(x==t), [2,1,3])
+                    # app.stimuli['arrow'].angle = 180*(2 - t)
+                    #===========================================================
                 if app.params['AudioFeedback'].val:
-                    app.sounds[1-t].vol=0.0
-                    app.sounds[t].vol=1.0
-                
+                    for j in range(app.nclasses): app.sounds[j].vol = float(j==t-1)
             elif phase == 'task':
                 pass
-                
             elif phase == 'response':
-                pass
-            
+                #Keep the target on if it was already on and feedback is provided outside of task.
+                #Else turn it off
+                for j in range(app.nclasses):
+                    app.stimuli['target_'+str(j)].on = app.stimuli['target_'+str(j)].on and app.states['Feedback']
             elif phase == 'stopcue':
                 pass
     
     @classmethod
     def process(cls,app,sig):
         if int(app.params['ContFeedbackEnable'])==1 and app.states['Feedback']:
-            #Assumes that sig ranges from extremes of -10 to +10
-            #Your signal processing should be designed so the input signal varies as such.
+            t = max(app.states['TargetCode'], 1)
+            
             if app.params['FakeFeedback'].val:
                 trial_i = app.states['CurrentTrial']-1 if app.states['CurrentTrial'] < app.fake_data.shape[0] else random.uniform(0,app.params['TrialsPerBlock'])
                 fake_block_ix = np.min((app.fake_data.shape[1],app.states['FBBlock']))
                 x = app.fake_data[trial_i,fake_block_ix]
-                x = x / 3
-                x = min(x, 3.2768)
-                x = max(x, -3.2767)
             else:
-                #Input signals should have mean=0, variance=1. Most signals will have extremes of -10 and +10
+                #===============================================================
+                # Inputs from standard modules will have mean 0, variance 1, and extremes of -10 to +10
+                # My ERD input will have mean 0, and extremes of -10 (=-100%) and + ~20 (=+200% baseline). May be inverted.
+                # My EMG input will have a non-zero mean, a min of 0 and a max of 10 (=100% MVC)
+                #===============================================================
                 x = sig[app.fbchan,:].mean(axis=1)#Extract the feedback channels.
-                x = x.A.ravel()[0]/3#Transform x to a measure from -3 to +3 SDs.
-                x = min(x, 3.2768)
-                x = max(x, -3.2767)
-            
+                x = x.A.ravel()[t-1]/3#Transform x to a measure mostly ranging from -3.3 to +3.3 SDs (useful for conversion to int)
+                
             #Save x to a state of uint16
+            x = min(x, 3.26)
+            x = max(x, -3.26)
             temp_x = x * 10000
             app.states['FBValue'] = np.uint16(temp_x)
             app.states['FBBlock'] = app.states['FBBlock'] + 1
             
-            #Pull x back from the state. This is useful in case enslave states is used.
-            x = np.int16(app.states['FBValue']) / 10000.0
+            #Pull x back from the state into the range -10,10. This is useful in case enslave states is used.
+            x = np.int16(app.states['FBValue']) * 3.0 / 10000.0
             
             if app.params['VisualFeedback'].val:
-                if int(app.params['VisualType'])==0:#bar
-                    app.updatebars(0.0 if not app.in_phase('task') and app.params['BaselineConstant'] else x)
-                    #for bar in app.bars: bar.rectobj.parameters.color = [1-app.states['InRange'], app.states['InRange'], 0]
-                elif int(app.params['VisualType'])==1:#cursor
-                    new_pos = app.stimuli['cursor1'].position
-                    new_pos[1] = new_pos[1] + app.curs_speed * x #speed is pixels per block
-                    new_pos[1] = min(new_pos[1],app.positions['green'][(0,1)]) #Never rmove the position beyond the top target
-                    new_pos[1] = max(new_pos[1],app.positions['red'][(0,1)]) #Never move the position beyond the bottom target
-                    app.stimuli['cursor1'].position = app.positions['origin'].A.ravel().tolist()\
-                        if not app.in_phase('task') and app.params['BaselineConstant'] else new_pos
+                this_fb = app.stimuli[app.vfb_keys[t-1]]
+                if app.vfb_type[t-1]==0:#bar
+                    update_by = 0.0 if not app.in_phase('task') and app.params['BaselineConstant'] else x
+                    app.bars[int(app.vfb_keys[t-1][-1])-1].set(update_by)
+                elif app.vfb_type[t-1] == 1: #cursor
+                        new_pos = this_fb.position
+                        new_pos[1] = new_pos[1] + app.curs_speed * x #speed is pixels per block
+                        new_pos[1] = min(new_pos[1], app.scrh) #Never move the position off the top
+                        new_pos[1] = max(new_pos[1], 0) #Never move the position off the bottom
+                        this_fb.position = app.positions['origin'].A.ravel().tolist()\
+                            if not app.in_phase('task') and app.params['BaselineConstant'] else new_pos
                         
                 #===============================================================
-                # Modify the color of the visual cues if we know the range.
+                # Modify the color of the visual targets if we are in range.
                 #===============================================================
-                if app.params['UseContForColor'].val and app.states.has_key('InRange'):
-                    if app.stimuli.has_key('target_box'): app.stimuli['target_box'].color = [1-app.states['InRange'], app.states['InRange'], 0]
-                    app.stimuli['fixation'].color = [1-app.states['InRange'], app.states['InRange'], 0]
+                if app.params['ContingencyEnable'].val:
+                    in_range = app.states['InRange']
+                else:
                     
-            if app.params['AudioFeedback'].val:
+                    in_range = (10*x >= app.target_range[t-1][0]) and (10*x <= app.target_range[t-1][1])
+                
+                for j in range(app.nclasses):
+                    app.stimuli['target_'+str(j)].color = [1-in_range, in_range, 0]
+                app.stimuli['fixation'].color = [1-in_range, in_range, 0]
+                    
+            if app.params['AudioFeedback'].val and not app.in_phase('gocue'):
                 #app.fader_val from -1 to +1
                 #can increment or decrement at app.fader_speed
                 app.fader_val = app.fader_val + app.fader_speed * x
