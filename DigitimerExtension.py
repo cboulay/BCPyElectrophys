@@ -13,6 +13,7 @@ class DigitimerApp(object):
             "PythonApp:Digitimer        int        DigitimerEnable= 0 0 0 1 // Enable: 0 no, 1 yes (boolean)",
             "PythonApp:Digitimer        int        DigiTriggerType= 0 0 0 1 // Trigger through: 0 Contec1, 1 Contec2 (enumeration)",
             "PythonApp:Digitimer        float      DigiISIMin= 6 6 2 % // Minimum time s between stimuli",
+            "PythonApp:Digitimer        float      DigiIntensity= 0 0 0 % // Starting digitimer intensity"
         ]
     states = [
             #"SpecificState 1 0 0 0", #Define states that are specific to this extension.
@@ -37,6 +38,7 @@ class DigitimerApp(object):
             app.trigbox.set_TTL(channel = 2-trigType, amplitude=5.0, width=2.5, offset=0.0)
             from Caio.VirtualStimulatorInterface import Virtual
             app.digistim = Virtual(trigbox=app.trigbox)
+            app.digistim.intensity = app.params['DigiIntensity'].val
             
     @classmethod
     def halt(cls,app):
