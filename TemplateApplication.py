@@ -18,7 +18,7 @@
 #===============================================================================
 	
 import numpy as np
-from random import randint, uniform, random
+from random import randint, uniform, random, shuffle
 from math import ceil
 import time
 
@@ -45,16 +45,18 @@ class BciApplication(BciGenericApplication):
 		#See here for already defined params and states http://bci2000.org/wiki/index.php/Contributions:BCPy2000#CurrentBlock
 		#See further details http://bci2000.org/wiki/index.php/Technical_Reference:Parameter_Definition
 		params = [
-			"PythonApp:Design	list	GoCueText=		 2 Imagery Rest % % % // Text for cues (max 2 targets for now)",
-			"PythonApp:Design   float	GoCueDur=	  1.0   1.0   0.0 100.0 // GoCue duration in seconds",
-			"PythonApp:Design   float	StopCueDur=	  1.0   1.0   0.0 100.0 // StopCue duration in seconds",
-			"PythonApp:Design	int		AlternateCues=    0     0     0   1  // Alternate target classes (true) or choose randomly (boolean)",
-			"PythonApp:Design  float	IntertrialDur=	  0.5   0.5   0.0 100.0 // Intertrial duration in seconds",
+			"PythonApp:Design	list	GoCueText=		 	2 Imagery Rest % % % // Text for cues. Defines N targets",
+			"PythonApp:Design	int		AlternateCues=    	0     0     0   1  // Alternate target classes (true) or choose randomly (boolean)",
+			"PythonApp:Design	matrix  TargetRange= {1 2} {Min Max} 80.0 100.0 -100.0 -80.0 0 -100 100 //Row for each target, Cols for Min(-100), Max(+100)",
+			"PythonApp:Design  float	IntertrialDur=	  	0.5   0.5   0.0 100.0 // Intertrial duration in seconds",
 			"PythonApp:Design  float	BaselineDur=		4.0   4.0   0.0 100.0 // Baseline duration in seconds",
+			"PythonApp:Design   float	GoCueDur=	  		1.0   1.0   0.0 100.0 // GoCue duration in seconds",
 			"PythonApp:Design  float	TaskDur=			6.0   6.0   0.0 100.0 // Min task duration in seconds (unless contingency)",
 			"PythonApp:Design  float	TaskRand=			3.0   3.0   0.0 100.0 // Additional randomization in seconds (unless contingency)",
+			"PythonApp:Design   float	ResponseDur=	  	0.2   0.2   0.0 100.0 // Response duration in seconds (unless ERP)",
+			"PythonApp:Design   float	StopCueDur=	  		1.0   1.0   0.0 100.0 // StopCue duration in seconds",
 			"PythonApp:Display  int		ScreenId=		   -1	-1	 %   %  // on which screen should the stimulus window be opened - use -1 for last",
-			"PythonApp:Display  float	WindowSize=		 0.8   1.0   0.0 1.0 // size of the stimulus window, proportional to the screen",
+			"PythonApp:Display  float	WindowSize=		 	0.8   1.0   0.0 1.0 // size of the stimulus window, proportional to the screen",
 			]
 		params.extend(ContingencyApp.params)
 		params.extend(MagstimApp.params)
@@ -64,7 +66,7 @@ class BciApplication(BciGenericApplication):
 		states = [
 			#===================================================================
 			# "Intertrial 1 0 0 0",
-			# "Baseline 1 0 0 0",
+			"Baseline 1 0 0 0",
 			# "GoCue 1 0 0 0",
 			# "Task 1 0 0 0",
 			# "Response 1 0 0 0",
@@ -90,6 +92,14 @@ class BciApplication(BciGenericApplication):
 		
 		self.nclasses = len(self.params['GoCueText'])#Must be defined in Preflight because it is used by extension preflight.
 		
+		#If using contingency or visual feedback, check that the target ranges make sense.
+		if int(self.params['ContingencyEnable'].val or self.params['ContFeedbackEnable'].val)==1:
+			targrange=self.params['TargetRange'].val
+			if targrange.shape[0] != self.nclasses: raise EndUserError, "TargetRange must have entries for each target"
+			if targrange.shape[1]!=2: raise EndUserError, "TargetRange must have Min and Max values"
+			if any([ar[(0,0)] > ar[(0,1)] for ar in targrange]): raise EndUserError, "TargetRange must be in increasing order"
+			self.target_range=np.asarray(targrange,dtype='float64')
+
 		ContingencyApp.preflight(self, sigprops)
 		MagstimApp.preflight(self, sigprops)
 		DigitimerApp.preflight(self, sigprops)
@@ -98,6 +108,14 @@ class BciApplication(BciGenericApplication):
 		
 	#############################################################
 	def Initialize(self, indim, outdim):
+		
+		#=======================================================================
+		# TODO: Set the list of targetCodes (pseudorandomized)
+		#=======================================================================
+		n_trials = self.params['TrialsPerBlock'].val * self.params['BlocksPerRun'].val
+		trials_per_class = int(n_trials / self.nclasses)
+		self.target_codes = [1 + x / trials_per_class for x in range(n_trials)]
+		shuffle(self.target_codes)
 		
 		#=======================================================================
 		# Screen
@@ -122,7 +140,7 @@ class BciApplication(BciGenericApplication):
 		self.stimulus('fixation', z=4.2, stim=Disc(position=center, radius=5, color=(1,1,1), on=False))
 		
 		#=======================================================================
-		# Share some variables with the extensions.
+		# Make a few variables easier to access.
 		#=======================================================================
 		self.eegfs = self.nominal['SamplesPerSecond'] #Sampling rate
 		self.spb = self.nominal['SamplesPerPacket'] #Samples per block/packet
@@ -193,7 +211,7 @@ class BciApplication(BciGenericApplication):
 		self.phase(name='gocue', next='task', duration=self.params['GoCueDur'].val*1000.0)
 		self.phase(name='task', next='response',duration=None)
 		self.phase(name='response', next='stopcue',\
-				duration=None if int(self.params['ERPDatabaseEnable']) else 100)
+				duration=None if int(self.params['ERPDatabaseEnable']) else self.params['ResponseDur'].val*1000.0)
 		self.phase(name='stopcue', next='intertrial', duration=self.params['StopCueDur'].val*1000.0)
 
 		self.design(start='intertrial', new_trial='intertrial')
@@ -204,7 +222,7 @@ class BciApplication(BciGenericApplication):
 		#=======================================================================
 		# #Update some states
 		# self.states['Intertrial'] = int(phase in ['intertrial'])
-		# self.states['Baseline'] = int(phase in ['baseline'])
+		self.states['Baseline'] = int(phase in ['baseline'])
 		# self.states['GoCue'] = int(phase in ['gocue'])
 		# self.states['Task'] = int(phase in ['task'])
 		# self.states['Response']  = int(phase in ['response'])
@@ -216,7 +234,7 @@ class BciApplication(BciGenericApplication):
 			
 		elif phase == 'baseline':
 			if int(self.params['AlternateCues']): self.states['TargetCode'] = 1 + self.states['CurrentTrial'] % self.nclasses
-			else: self.states['TargetCode'] = randint(1,self.nclasses)
+			else: self.states['TargetCode'] = self.target_codes[self.states['CurrentTrial']-1]
 		
 		elif phase == 'gocue':
 			t = self.states['TargetCode']
@@ -263,10 +281,9 @@ class BciApplication(BciGenericApplication):
 			if contingency_met and magstim_ready and digitimer_ready:
 				self.change_phase('response')
 			
-		#If we are in Response and we are using ERPApp
-		if self.in_phase('response') and int(self.params['ERPDatabaseEnable']):
-			#Progress from Response to stopcue if the ERP has been collected.
-			if self.states['ERPCollected']: self.change_phase('stopcue')
+		#If we are in Response and we are using ERPApp and the ERP has been collected
+		if self.in_phase('response') and int(self.params['ERPDatabaseEnable']) and self.states['ERPCollected']:
+			self.change_phase('stopcue')
 	
 	#############################################################
 	def Frame(self, phase):

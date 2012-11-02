@@ -24,7 +24,6 @@ class ContingencyApp(object):
             "PythonApp:Contingency    float        DurationMin= 2.6 2.6 0 % // Duration s which signal must continuously meet criteria before triggering",
             "PythonApp:Contingency    float        DurationRand= 0.3 0.3 0 % // Randomization s around the duration",
             "PythonApp:Contingency    int          ContingencyReset= 1 1 0 1 // Counter resets when exiting range: 0 no, 1 yes (boolean)",
-            "PythonApp:Contingency    matrix    ContingencyRange= {1 2} {Min Max} 0.7 1.3 0.0 0.5 0 % % //Row for each target, Cols for Min and Max",
             #"PythonApp:Contingency     int         RangeEnter= 0 0 0 2 // Signal must enter range from: 0 either, 1 below, 2 above (enumeration)",
             
         ]
@@ -56,13 +55,6 @@ class ContingencyApp(object):
             else:
                 raise EndUserError, "Must supply ContingentChannel"
             
-            #Check that the amplitude range makes sense.
-            amprange=app.params['ContingencyRange'].val
-            if amprange.shape[0] != len(app.params['GoCueText']): raise EndUserError, "ContingencyRange must have entries for each target"
-            if amprange.shape[1]!=2: raise EndUserError, "ContingencyRange must have Min and Max values"
-            if any([ar[(0,0)] > ar[(0,1)] for ar in amprange]): raise EndUserError, "ContingencyRange must be in increasing order"
-            app.amprange=np.asarray(amprange,dtype='float64')
-    
     @classmethod
     def initialize(cls, app, indim, outdim):
         if int(app.params['ContingencyEnable'])==1:            
@@ -112,19 +104,22 @@ class ContingencyApp(object):
     @classmethod
     def process(cls,app,sig):
         if int(app.params['ContingencyEnable'])==1:
-            #Convert input signal to scalar
             x = sig[app.contchan,:].mean(axis=1)#still a matrix
             x=float(x)#single value
             
             #===================================================================
-            # Update whether or not we are in range based on the signal
+            # Target ranges are specified in the range -100 to +100
+            # EMG signals are expected to range from 0 to 10 (10 = 100 % MVC)
+            # ERD signals are expected to range from -10 to +10 (10 = 100% baseline)
+            # Standard signals are expected to have mean 0 and unit variance, extremes -10 and +10
+            # Thus, multiply our signal by 10 when testing if it is in range
             #===================================================================
-            targ_ix = int(app.states['TargetCode'])-1 if int(app.states['TargetCode'])>0 else 0
-            now_in_range = (x >= app.amprange[targ_ix][0]) and (x <= app.amprange[targ_ix][1])
-            app.states['InRange'] = now_in_range #update state. Used by other modules.
-            if app.changed('InRange', only=1) or not now_in_range:
+            x = x * 10.0
+            t = max(app.states['TargetCode'], 1)
+            app.states['InRange'] = (x >= app.target_range[t-1][0]) and (x <= app.target_range[t-1][1])
+            if app.changed('InRange', only=1) or not app.states['InRange']:
                 app.remember('range_ok') #Resets range_ok unless we were already inrange.
-                if int(app.params['ContingencyReset']): app.states['msecInRange'] = 0
+                if int(app.params['ContingencyReset']): app.states['msecInRange'] = 0 #Resets the timer
             app.states['msecInRange'] = app.states['msecInRange'] + int(app.states['InRange'])*int(app.block_dur)
             rangeok = app.states['msecInRange'] >= app.mindur
             enterok = True #TODO: Check entry direction condition.
