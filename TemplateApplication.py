@@ -233,11 +233,15 @@ class BciApplication(BciGenericApplication):
 			pass
 			
 		elif phase == 'baseline':
-			if int(self.params['AlternateCues']): self.states['TargetCode'] = 1 + self.states['CurrentTrial'] % self.nclasses
-			else: self.states['TargetCode'] = self.target_codes[self.states['CurrentTrial']-1]
+			pass
+		#Do I need the new TargetCode in baseline for any of the addons?
+		#If not, then it belongs in gocue for consistency with regular BCI2000 modules.
+		
 		
 		elif phase == 'gocue':
-			t = self.states['TargetCode']
+			if int(self.params['AlternateCues']): self.states['TargetCode'] = 1 + self.states['CurrentTrial'] % self.nclasses
+			else: self.states['TargetCode'] = self.target_codes[self.states['CurrentTrial']-1]
+			t = self.states['TargetCode'] #It's useful to pull from states in case "enslave states" is used.
 			self.stimuli['cue'].text = self.params['GoCueText'][t-1]
 			
 		elif phase == 'task':

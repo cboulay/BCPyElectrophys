@@ -231,7 +231,7 @@ class FeedbackApp(object):
     @classmethod
     def transition(cls,app,phase):
         if app.params['ContFeedbackEnable'].val:
-            t = app.states['TargetCode'] #What target are we on. TargetCode changes on GoCue transition.
+            t = app.states['TargetCode'] #What target are we on? TargetCode changes on GoCue transition.
             app.states['Feedback'] = phase=='task' or app.params['BaselineFeedback'].val#Will we provide feedback this phase?
             
             #===================================================================
@@ -241,7 +241,7 @@ class FeedbackApp(object):
             # Visual feedback elements (bars, cursors, etc)
             if app.params['VisualFeedback'].val:
                 for j in range(app.nclasses):
-                    this_stim = app.stimuli[app.vfb_keys[j]].on = app.states['Feedback'] and j==t-1
+                    app.stimuli[app.vfb_keys[j]].on = app.states['Feedback'] and j==t-1
             
             # Non-visual feedback.
             if not app.states['Feedback']:        
@@ -253,14 +253,14 @@ class FeedbackApp(object):
                     app.handbox.position = 45
 
             #===================================================================
-            # Transition specific feedback management
+            # Transition specific management
             #===================================================================
             if phase == 'intertrial':
-                app.states['FBBlock']=0
+                app.states['FBBlock']=0 #Reset how many blocks we've been giving feedback for this trial.
             elif phase == 'baseline':
-                pass
-            elif phase == 'gocue':#Visual and/or auditory cues.
-                if app.params['VisualFeedback'].val: #Visual targets
+                pass #Feedback elements don't change in transition to baseline.
+            elif phase == 'gocue': #We have our new target code.
+                if app.params['VisualFeedback'].val: #Visual _targets_
                     for j in range(app.nclasses):#Update which targets are on
                         app.stimuli['target_'+str(j)].on = j==t-1
                     #===========================================================
@@ -290,12 +290,12 @@ class FeedbackApp(object):
                 x = app.fake_data[trial_i,fake_block_ix]
             else:
                 #===============================================================
-                # Inputs from standard modules will have mean 0, variance 1, and extremes of -10 to +10
-                # My ERD input will have mean 0, and extremes of -10 (=-100%) and + ~20 (=+200% baseline). May be inverted.
+                # Inputs from standard modules will have mean 0, variance 1, and extremes of ~ -10 to +10
+                # My ERD input will have mean 0, and extremes of -10 (=-100%) and + ~20 (=+200% baseline). May be inverted (-20 to +10)
                 # My EMG input will have a non-zero mean, a min of 0 and a max of 10 (=100% MVC)
                 #===============================================================
                 x = sig[app.fbchan,:].mean(axis=1)#Extract the feedback channels.
-                x = x.A.ravel()[t-1]/3#Transform x to a measure mostly ranging from -3.3 to +3.3 SDs (useful for conversion to int)
+                x = x.A.ravel()[t-1]/3#Transform x to a measure mostly ranging from -3.26 to +3.26 SDs->Necessary for 16-bit integer state
                 
             #Save x to a state of uint16
             x = min(x, 3.26)
@@ -311,7 +311,7 @@ class FeedbackApp(object):
                 this_fb = app.stimuli[app.vfb_keys[t-1]]
                 if app.vfb_type[t-1]==0:#bar
                     update_by = 0.0 if not app.in_phase('task') and app.params['BaselineConstant'] else x
-                    app.bars[int(app.vfb_keys[t-1][-1])-1].set(update_by)
+                    app.bars[int(app.vfb_keys[t-1][-1])-1].set(update_by) #e.g. "barrect_1" take the "1"
                 elif app.vfb_type[t-1] == 1: #cursor
                         new_pos = this_fb.position
                         new_pos[1] = new_pos[1] + app.curs_speed * x #speed is pixels per block

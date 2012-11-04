@@ -82,15 +82,16 @@ class MagstimApp(object):
             if phase == 'intertrial':
                 app.magstim.remocon = False
                 
-            elif phase == 'baseline': #TargetCode is set in the application transition to baseline
+            elif phase == 'baseline': 
+                pass
+            
+            elif phase == 'gocue': #New TargetCode is set in the application transition to gocue
+                #I hope this is enough time to set a new intensity. It should be if we are already armed.
                 app.magstim.remocon = True
                 app.magstim.intensity = app.magstimA[app.states['TargetCode']-1] if app.magstim.intensity in app.magstimA else app.magstim.intensity
                 app.magstim.intensityb = app.magstimB[app.states['TargetCode']-1] if app.magstim.intensityb in app.magstimB else app.magstim.intensityb
                 app.magstim.ISI = app.magstimISI[app.states['TargetCode']-1] if app.magstim.ISI in app.magstimISI else app.magstim.ISI
                 app.magstim.remocon = False
-            
-            elif phase == 'gocue':
-                pass
                 
             elif phase == 'task':
                 pass
@@ -114,6 +115,7 @@ class MagstimApp(object):
             
             #Arm the coil if it is not armed and should be.
             if not app.magstim.armed and not (app.in_phase('response') or app.in_phase('stopcue')):
+                #We avoid arming in response or stopcue so the arming artifact doesn't affect the ERP.
                 if not app.magstim.remocon: app.magstim.remocon = True
                 app.magstim.armed = True
                 app.magstim.remocon = False#Toggle remocon so that we can manually adjust the intensity.
@@ -122,13 +124,14 @@ class MagstimApp(object):
             # Update the StimulatorReady state #
             ####################################
             stim_ready = app.magstim.armed if not app.params['MSReqStimReady'].val else (app.magstim.ready and app.magstim.armed)
-            #stim_ready = True #Debugging
+            #stim_ready = True #Use this for debugging
             isiok = app.since('tms_trig')['msec'] >= 1000.0 * float(app.params['MSISIMin'])
             app.states['MagstimReady'] = stim_ready and isiok
     
     @classmethod
     def event(cls, app, phasename, event):
         if int(app.params['MSEnable'])==1 and event.type == pygame.locals.KEYDOWN and event.key in [pygame.K_UP, pygame.K_DOWN]:
+            #This has a pretty poor success rate. I wonder if it has to do with toggling the remocon state.
             if not app.magstim.remocon: app.magstim.remocon = True
             if event.key == pygame.K_UP: app.magstim.intensity = app.magstim.intensity + 1
             if event.key == pygame.K_DOWN: app.magstim.intensity = app.magstim.intensity - 1
