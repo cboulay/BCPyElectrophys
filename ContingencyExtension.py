@@ -115,7 +115,7 @@ class ContingencyApp(object):
             # Thus, multiply our signal by 10 when testing if it is in range
             #===================================================================
             x = x * 10.0
-            t = max(app.states['TargetCode'], 1)
+            t = app.states['LastTargetCode'] #Keeps track of the previous trial's targetcode for feedback purposes.
             app.states['InRange'] = (x >= app.target_range[t-1][0]) and (x <= app.target_range[t-1][1])
             if app.changed('InRange', only=1) or not app.states['InRange']:
                 app.remember('range_ok') #Resets range_ok unless we were already inrange.

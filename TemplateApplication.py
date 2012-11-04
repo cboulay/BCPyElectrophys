@@ -71,7 +71,8 @@ class BciApplication(BciGenericApplication):
 			# "Task 1 0 0 0",
 			# "Response 1 0 0 0",
 			# "StopCue 1 0 0 0",
-			"TargetCode 4 0 0 0",
+			"TargetCode 4 0 0 0", #Set to target int in gocue and 0 in stopcue
+			"LastTargetCode 4 0 0 0", #Set to target int in gocue, not turned off. Needed for baseline feedback and inrange.
 			"TaskNBlocks 12 0 0 0",
 			#"TrialPhase 4 0 0 0",#TrialPhase unnecessary. Use built-in PresentationPhase
 			#===================================================================
@@ -155,6 +156,7 @@ class BciApplication(BciGenericApplication):
 			addstatemonitor(self, 'CurrentBlock')
 			addstatemonitor(self, 'CurrentTrial')
 			addstatemonitor(self, 'TargetCode')
+			addstatemonitor(self, 'LastTargetCode')
 			addstatemonitor(self, 'TaskNBlocks')
 			addphasemonitor(self, 'phase', showtime=True)
 
@@ -188,6 +190,7 @@ class BciApplication(BciGenericApplication):
 	#############################################################
 	def StartRun(self):
 		#if int(self.params['ShowFixation']):
+		self.states['LastTargetCode'] = self.target_codes[0]
 		self.stimuli['fixation'].on = True
 		MagstimApp.startrun(self)
 		DigitimerApp.startrun(self)
@@ -242,6 +245,7 @@ class BciApplication(BciGenericApplication):
 			if int(self.params['AlternateCues']): self.states['TargetCode'] = 1 + self.states['CurrentTrial'] % self.nclasses
 			else: self.states['TargetCode'] = self.target_codes[self.states['CurrentTrial']-1]
 			t = self.states['TargetCode'] #It's useful to pull from states in case "enslave states" is used.
+			self.states['LastTargetCode'] = t
 			self.stimuli['cue'].text = self.params['GoCueText'][t-1]
 			
 		elif phase == 'task':
@@ -256,7 +260,7 @@ class BciApplication(BciGenericApplication):
 		
 		elif phase == 'stopcue':
 			self.stimuli['cue'].text = "Relax"
-			self.states['TargetCode'] = 0
+			self.states['TargetCode'] = 0 #Note we don't turn off the LastTargetCode
 			
 		self.stimuli['cue'].on = (phase in ['gocue', 'stopcue'])
 		

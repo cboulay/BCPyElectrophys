@@ -231,7 +231,7 @@ class FeedbackApp(object):
     @classmethod
     def transition(cls,app,phase):
         if app.params['ContFeedbackEnable'].val:
-            t = app.states['TargetCode'] #What target are we on? TargetCode changes on GoCue transition.
+            t = app.states['LastTargetCode'] #What target are we on? TargetCode changes on GoCue transition.
             app.states['Feedback'] = phase=='task' or app.params['BaselineFeedback'].val#Will we provide feedback this phase?
             
             #===================================================================
@@ -282,7 +282,7 @@ class FeedbackApp(object):
     @classmethod
     def process(cls,app,sig):
         if int(app.params['ContFeedbackEnable'])==1 and app.states['Feedback']:
-            t = max(app.states['TargetCode'], 1)
+            t = app.states['LastTargetCode']
             
             if app.params['FakeFeedback'].val:
                 trial_i = app.states['CurrentTrial']-1 if app.states['CurrentTrial'] < app.fake_data.shape[0] else random.uniform(0,app.params['TrialsPerBlock'])
@@ -326,7 +326,6 @@ class FeedbackApp(object):
                 if app.params['ContingencyEnable'].val:
                     in_range = app.states['InRange']
                 else:
-                    
                     in_range = (10*x >= app.target_range[t-1][0]) and (10*x <= app.target_range[t-1][1])
                 
                 for j in range(app.nclasses):
