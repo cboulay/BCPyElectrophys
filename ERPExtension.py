@@ -284,9 +284,9 @@ class ERPApp(object):
         if int(app.params['ERPDatabaseEnable'])==1:
             #Input signals should have mean=0, variance=1. Most signals will have extremes of -10 and +10
             #Except digital triggers are not processed
-            trig_dat = sig[app.trigchan,:] if app.in_phase('response') else 0*sig[app.trigchan,:]
-            app.trig_trap.process(trig_dat)
             app.leaky_trap.process(sig[app.erpchan,:])
+            trig_dat = sig[app.trigchan,:]# if app.in_phase('response') else 0*sig[app.trigchan,:]
+            app.trig_trap.process(trig_dat)
 
             if app.in_phase('response') and app.trig_trap.full():
                 n_excess = (app.trig_trap.nseen-app.trig_trap.sprung_at)-app.trig_trap.nsamples
