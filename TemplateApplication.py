@@ -46,7 +46,7 @@ class BciApplication(BciGenericApplication):
 		#See further details http://bci2000.org/wiki/index.php/Technical_Reference:Parameter_Definition
 		params = [
 			"PythonApp:Design	list	GoCueText=		 	2 Imagery Rest % % % // Text for cues. Defines N targets",
-			"PythonApp:Design	int		AlternateCues=    	0     0     0   1  // Alternate target classes (true) or choose randomly (boolean)",
+			"PythonApp:Design	int		ClusterTargets=    	1     1     0   %  // Size of pseudorandomized target clusters or cycle(0)",
 			"PythonApp:Design	matrix  TargetRange= {1 2} {Min Max} 80.0 100.0 -100.0 -80.0 0 -100 100 //Row for each target, Cols for Min(-100), Max(+100)",
 			"PythonApp:Design  float	IntertrialDur=	  	0.5   0.5   0.0 100.0 // Intertrial duration in seconds",
 			"PythonApp:Design  float	BaselineDur=		4.0   4.0   0.0 100.0 // Baseline duration in seconds",
@@ -93,6 +93,11 @@ class BciApplication(BciGenericApplication):
 		
 		self.nclasses = len(self.params['GoCueText'])#Must be defined in Preflight because it is used by extension preflight.
 		
+		n_trials = self.params['TrialsPerBlock'].val * self.params['BlocksPerRun'].val
+		trials_per_class = int(n_trials / self.nclasses)
+		if not (self.params['ClusterTargets']>0 and trials_per_class % self.params['ClusterTargets'].val == 0):
+			raise EndUserError, "ClusterTargets must be a integer factor of the number of trials per target"
+		
 		#If using contingency or visual feedback, check that the target ranges make sense.
 		if int(self.params['ContingencyEnable'].val or self.params['ContFeedbackEnable'].val)==1:
 			targrange=self.params['TargetRange'].val
@@ -111,12 +116,24 @@ class BciApplication(BciGenericApplication):
 	def Initialize(self, indim, outdim):
 		
 		#=======================================================================
-		# TODO: Set the list of targetCodes (pseudorandomized)
+		# Set the list of targetCodes (pseudorandomized)
 		#=======================================================================
 		n_trials = self.params['TrialsPerBlock'].val * self.params['BlocksPerRun'].val
+		classes_per_cluster = self.params['ClusterTargets'].val
 		trials_per_class = int(n_trials / self.nclasses)
-		self.target_codes = [1 + x / trials_per_class for x in range(n_trials)]
-		shuffle(self.target_codes)
+		if classes_per_cluster == 0: #We will cycle through targets.
+			self.target_codes = 1 + [item for sublist in [range(self.nclasses) for j in range(trials_per_class)] for item in sublist]
+		elif classes_per_cluster ==1:
+			self.target_codes = [1 + x / trials_per_class for x in range(n_trials)] #Forcing int yields e.g., [0,0,0,1,1,1,2,2,2]
+			shuffle(self.target_codes)
+		else:
+			n_clusters = trials_per_class / classes_per_cluster
+			temp = []
+			for cc in range(n_clusters):
+				temp2 = [[j for jj in range(classes_per_cluster)] for j in range(self.nclasses)] #Generate a list of clusters, one per target
+				shuffle(temp2) #Shuffle the list of clusters
+				temp.append(temp2) #Append the list of clusters to what we have already.
+			self.target_codes = 1 + [x2 for x3 in [item for sublist in temp for item in sublist] for x2 in x3] #Flatten
 		
 		#=======================================================================
 		# Screen
@@ -242,8 +259,7 @@ class BciApplication(BciGenericApplication):
 		
 		
 		elif phase == 'gocue':
-			if int(self.params['AlternateCues']): self.states['TargetCode'] = 1 + self.states['CurrentTrial'] % self.nclasses
-			else: self.states['TargetCode'] = self.target_codes[self.states['CurrentTrial']-1]
+			self.states['TargetCode'] = self.target_codes[self.states['CurrentTrial']-1]
 			t = self.states['TargetCode'] #It's useful to pull from states in case "enslave states" is used.
 			self.states['LastTargetCode'] = t
 			self.stimuli['cue'].text = self.params['GoCueText'][t-1]

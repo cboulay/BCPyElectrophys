@@ -50,6 +50,7 @@ class MagstimApp(object):
             app.magstim=Bistim(port=serPort, trigbox=app.trigbox)
             #app.intensity_detail_name = 'dat_TMS_powerA'
             app.magstim.remocon = True
+            
             app.magstim.intensity = app.magstimA[0]
             app.magstim.intensityb = app.magstimB[0]
             app.magstim.ISI = app.magstimISI[0]
