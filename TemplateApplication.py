@@ -67,8 +67,8 @@ class BciApplication(BciGenericApplication):
 			#===================================================================
 			# "Intertrial 1 0 0 0",
 			"Baseline 1 0 0 0",
-			# "GoCue 1 0 0 0",
-			# "Task 1 0 0 0",
+			"GoCue 1 0 0 0",
+			"Task 1 0 0 0",
 			# "Response 1 0 0 0",
 			# "StopCue 1 0 0 0",
 			"TargetCode 4 0 0 0", #Set to target int in gocue and 0 in stopcue
@@ -243,8 +243,8 @@ class BciApplication(BciGenericApplication):
 		# #Update some states
 		# self.states['Intertrial'] = int(phase in ['intertrial'])
 		self.states['Baseline'] = int(phase in ['baseline'])
-		# self.states['GoCue'] = int(phase in ['gocue'])
-		# self.states['Task'] = int(phase in ['task'])
+		self.states['GoCue'] = int(phase in ['gocue'])
+		self.states['Task'] = int(phase in ['task'])
 		# self.states['Response']  = int(phase in ['response'])
 		# self.states['StopCue']  = int(phase in ['stopcue'])
 		#=======================================================================
