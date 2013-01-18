@@ -1,6 +1,6 @@
 These modules are for use with [BCPy2000](http://bci2000.org/downloads/BCPy2000/BCPy2000.html).
 
-1. Requirements
+1. Installation
 2. TemplateApplication
 3. ContingencyExtension
 4. MagstimExtension
@@ -8,20 +8,38 @@ These modules are for use with [BCPy2000](http://bci2000.org/downloads/BCPy2000/
 6. ContinuousFeedbackExtension
 7. ERPExtension
 
-## Requirements
-Since these modules are for BCPy2000, you must have BCPy2000 installed.
-BCPy2000 can be installed in an isolated environment (see its FullMonty install) or in conjunction
-with an existing Python installation.
+## Installation
+Since these modules are for BCPy2000, you must have
+[BCPy2000](http://bci2000.org/downloads/BCPy2000/BCPy2000.html) installed. Read on for specific BCPy2000 instructions.
 
-Since I require packages in addition to those provided by the BCPy2000 installation, and since I use
-Python for other things ([see EERF](https://github.com/cboulay/EERF)), I prefer to use a full
+BCPy2000 can be installed in an isolated environment (see its FullMonty install) or in conjunction
+with an existing Python installation. Since I require packages in addition to those provided by the BCPy2000 installation,
+and since I use Python for other things ([see EERF](https://github.com/cboulay/EERF)), I prefer to use a full
 Python installation.
 
-Note that many neurophysiological hardware devices do not have 64-bit drivers. Thus, I recommend
+Note that many neurophysiology devices do not have 64-bit drivers. Thus, I recommend
 you install the 32-bit versions of all the following. 32-bit applications will still run in
 a Win64 environment.
 
-### Installing Python
+### Install BCI2000
+The [BCI2000 and BCPy2000 binaries](http://www.bci2000.org/wiki/index.php/BCI2000_Binaries)
+are probably good enough, but the Python framework that ships with the compiled binaries is out of date.
+The best way to get the latest Python framework is by downloading the code through SVN. Since I'm recommending
+you use SVN for part of the job, you may as well use it for the whole job. Follow the instructions
+[here](http://www.bci2000.org/wiki/index.php/Programming_Reference:BCI2000_Source_Code).
+In brief:
+
+1 Download and install [TortoiseSVN](http://tortoisesvn.net)
+2 Download and install [MS Visual Studio 2008 Express](http://www.microsoft.com/en-us/download/details.aspx?id=6506)(vcsetup.exe)
+3 Download and install [CMake](http://www.cmake.org/cmake/resources/software.html)
+4 Create an [account](http://www.bci2000.org/wiki/index.php/Creating_a_User_Account) on bci2000.org
+5 Download the source code (`SVN checkout http://www.bci2000.org/svn/trunk BCI2000 --username <username> --password <password>`). This is around 160 MBytes.
+6 Change to the `BCI2000/build/` directory and run `Make VS2008 Project Files.bat`
+7 During the make process, be sure to make contributions and BCPy2000
+8 Open the BCI2000.sln file in VS2008
+9 At the top, change the Debug to Release, from the Build menu select "Build Solution". Wait ~10 minutes.
+
+### Install Python
 BCPy2000 currently has some dependencies that require Python <= 2.6.
 See [here](http://www.bci2000.org/phpbb/viewtopic.php?f=1&t=1330) for a discussion
 on using BCPy2000 with more modern Python.
@@ -32,43 +50,29 @@ Add the Python directory (usually C:\Python26) to your [PATH environment variabl
 (TODO: Do we need to set the PYTHONHOME directory?)
 
 ### Installing BCPy2000 dependencies
-The BCPy2000 dependencies are listed [here](http://bci2000.org/downloads/BCPy2000/Python_Packages.html).
 
-The easiest way to install Python packages on Windows is to find the binary installers [here](http://www.lfd.uci.edu/~gohlke/pythonlibs/).
-Make sure to get the ones built for your version of Windows and Python.
+1. Download and install [setuptools](http://pypi.python.org/pypi/setuptools)
+1. Download and install [pyreadline 1.5](http://pypi.python.org/packages/any/p/pyreadline/pyreadline-1.5-win32-setup.exe)
+2. Download and install [IPython 0.10.2](http://archive.ipython.org/release/0.10.2/ipython-0.10.2.win32-setup.exe)
+3. From [here](http://www.lfd.uci.edu/~gohlke/pythonlibs/) download and install
+    pywin32, numpy, scipy, matplotlib, PIL, pyaudio, pyopengl
+4. Download and install [pygame 1.9.1](http://www.pygame.org/download.shtml)
+5. Download and install [VisionEgg](http://www.lfd.uci.edu/~gohlke/pythonlibs/#visionegg)
 
-Download (but do not yet run) the latest version installers from the above link for the following packages:
-Distribute, NumPy, SciPy, pywin32, pygame, PIL, pyaudio, matplotlib, PyOpenGL, and VisionEgg.
+### Installing BCPy2000 Python packages
+(?Copy the included EmbeddedPythonConsole.py into the new framework/BCPy2000 folder. Overwrite the existing file.)
+Run `BCI2000/src/contrib/BCPy2000/InstallFramework.bat`
 
-Separately, download these installers:
-[IPython 0.10.2](http://archive.ipython.org/release/0.10.2/ipython-0.10.2.win32-setup.exe),
-[pyreadline 1.5](http://pypi.python.org/packages/any/p/pyreadline/pyreadline-1.5-win32-setup.exe).
-
-Install the packages in this order:
-Distribute, pywin32, pyreadline, ipython, numpy, scipy, matplotlib, PyOpenGL, PIL, pyaudio, pygame, VisionEgg.
-
-VisionEgg sometimes has problems with recent versions of PyOpenGL. On my working system, I have PyOpenGL v 3.0.2a4 and VisionEgg 1.2.1.
-(TODO: Maybe the trick is that VisionEgg has to be compiled locally against the recent PyOpenGL install?)
-
-### Installing BCI2000
-http://www.bci2000.org/wiki/index.php/BCI2000_Binaries
-Get both the latest release build and the contributed code.
-
-### Installing BCPy2000
-Download from Option B [here](http://bci2000.org/downloads/BCPy2000/Download.html).
-Open the zip file and copy PythonApplication, PythonSignalProcessing, and PythonSource exe files
-from BCPy2000-demo-20110710/demo/prog to your BCI2000/prog directory.
-Copy the framework folder from BCPy2000-demo-20110710 to somewhere convenient (like your BCI2000 folder).
-Copy the included EmbeddedPythonConsole.py into the new framework/BCPy2000 folder. Overwrite the existing file.
-Open a console window, change the the new framework folder, and execute
-'python setup.py install'
+At this point you should test that BCPy2000 is working.
+Run `BCI2000/src/contrib/BCPy2000/Merge.bat`
+Then run `BCI2000/batch/PythonDemo1_Triangle.bat`
 
 ### Installing BCPyElectrophys dependencies
 The extensions in this repo have additional dependencies depending on which extensions you intend to use.
 These include [EERF](https://github.com/cboulay/EERF),
  my [caio package](https://github.com/cboulay/caio-python),
  my [magstim package](https://github.com/cboulay/magstim-python),
- and possibly a couple other packages that are not published.
+ and these may or may not have their own dependencies.
 
 ### Downloading and installing BCPyElectrophys
 TODO: Describe how to use git and/or tag this release for .zip downloads.
