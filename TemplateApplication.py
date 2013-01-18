@@ -21,14 +21,12 @@ import numpy as np
 from random import randint, uniform, random, shuffle
 from math import ceil
 import time
-
 import VisionEgg
 import SigTools
 from AppTools.Boxes import box
 from AppTools.Displays import fullscreen
 from AppTools.StateMonitors import addstatemonitor, addphasemonitor
 from AppTools.Shapes import Disc
-
 from ContingencyExtension import ContingencyApp
 from ContinuousFeedbackExtension import FeedbackApp
 from MagstimExtension import MagstimApp

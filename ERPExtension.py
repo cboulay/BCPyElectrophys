@@ -16,18 +16,16 @@
 import Queue
 import threading
 import numpy as np
-#import random
-#import time
 from BCPy2000.BCI2000Tools.FileReader import ListDatFiles
 import os
 import sys
 sys.path.append(os.path.abspath('d:/tools/eerf/python/eerf'))
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "eerf.settings")
-from eerfd.models import *
-
 from AppTools.Shapes import Block
 import SigTools
 
+try: from eerfd.models import *
+except: pass
 class ERPThread(threading.Thread):
     def __init__(self, queue, app):
         threading.Thread.__init__(self)
@@ -126,46 +124,44 @@ class ERPApp(object):
     
     @classmethod
     def preflight(cls, app, sigprops):
-        if int(app.params['ERPDatabaseEnable'])==1:
-            chn = app.inchannels()
-            #Trigger
-            app.trigchan=None
-            tch = app.params['TriggerInputChan']
-            if len(tch) != 0:
-                if False in [isinstance(x, int) for x in tch]:
-                    nf = filter(lambda x: not str(x) in chn, tch)
-                    if len(nf): raise EndUserError, "TriggerChannel %s not in module's list of input channel names" % str(nf)
-                    app.trigchan = [chn.index(str(x)) for x in tch]
-                else:
-                    nf = [x for x in tch if x < 1 or x > len(chn) or x != round(x)]
-                    if len(nf): raise EndUserError, "Illegal TriggerChannel: %s" %str(nf)
-                    app.trigchan = [x-1 for x in tch]
-            #TODO: Check the trigger threshold
-            if app.trigchan:
-                trigthresh=app.params['TriggerThreshold'].val
-                app.trig_label=tch #This is the channel label.
-                app.trigthresh=trigthresh
-                
-            #ERP channel(s)
-            erpch = app.params['ERPChan'].val
-            if len(erpch) != 0:
-                if False in [isinstance(x, int) for x in erpch]:
-                    nf = filter(lambda x: not str(x) in chn, erpch)
-                    if len(nf): raise EndUserError, "ERPChan %s not in module's list of input channel names" % str(nf)
-                    app.erpchan = [chn.index(str(x)) for x in erpch]
-                else:
-                    nf = [x for x in erpch if x < 1 or x > len(chn) or x != round(x)]
-                    if len(nf): raise EndUserError, "Illegal ERPChan: %s" % str(nf)
-                    app.erpchan = [x-1 for x in erpch]
-            else:
-                raise EndUserError, "Must supply ERPChan"
-                
-            #ERP window
-            erpwin = app.params['ERPWindow'].val
-            if len(erpwin)!=2: raise EndUserError, "ERPWindow must have 2 values"
-            if erpwin[0]>erpwin[1]: raise EndUserError, "ERPWindow must be in increasing order"
-            if erpwin[1]<0: raise EndUserError, "ERPWindow must include up to at least 0 msec after stimulus onset"
-            app.erpwin=erpwin
+		if int(app.params['ERPDatabaseEnable'])==1:
+			chn = app.inchannels()
+			app.trigchan=None#Trigger
+			tch = app.params['TriggerInputChan']
+			if len(tch) != 0:
+				if False in [isinstance(x, int) for x in tch]:
+					nf = filter(lambda x: not str(x) in chn, tch)
+					if len(nf): raise EndUserError, "TriggerChannel %s not in module's list of input channel names" % str(nf)
+					app.trigchan = [chn.index(str(x)) for x in tch]
+				else:
+					nf = [x for x in tch if x < 1 or x > len(chn) or x != round(x)]
+					if len(nf): raise EndUserError, "Illegal TriggerChannel: %s" %str(nf)
+					app.trigchan = [x-1 for x in tch]
+			if app.trigchan:#TODO: Check the trigger threshold
+				trigthresh=app.params['TriggerThreshold'].val
+				app.trig_label=tch #This is the channel label.
+				app.trigthresh=trigthresh
+				
+			#ERP channel(s)
+			erpch = app.params['ERPChan'].val
+			if len(erpch) != 0:
+				if False in [isinstance(x, int) for x in erpch]:
+					nf = filter(lambda x: not str(x) in chn, erpch)
+					if len(nf): raise EndUserError, "ERPChan %s not in module's list of input channel names" % str(nf)
+					app.erpchan = [chn.index(str(x)) for x in erpch]
+				else:
+					nf = [x for x in erpch if x < 1 or x > len(chn) or x != round(x)]
+					if len(nf): raise EndUserError, "Illegal ERPChan: %s" % str(nf)
+					app.erpchan = [x-1 for x in erpch]
+			else:
+				raise EndUserError, "Must supply ERPChan"
+				
+			#ERP window
+			erpwin = app.params['ERPWindow'].val
+			if len(erpwin)!=2: raise EndUserError, "ERPWindow must have 2 values"
+			if erpwin[0]>erpwin[1]: raise EndUserError, "ERPWindow must be in increasing order"
+			if erpwin[1]<0: raise EndUserError, "ERPWindow must include up to at least 0 msec after stimulus onset"
+			app.erpwin=erpwin
     
     @classmethod
     def initialize(cls, app, indim, outdim):
