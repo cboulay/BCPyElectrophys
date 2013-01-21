@@ -18,7 +18,7 @@ class FeedbackApp(object):
             "Feedback:Design    int          FakeFeedback=        0 % % % // Make feedback contingent on an external file (boolean)",
             "Feedback:Design    string       FakeFile=            % % % % // Path to fake feedback csv file (inputfile)",
             "Feedback:Visual    int          VisualFeedback=      0 0 0 1 // Show online feedback? (boolean)",
-            "Feedback:Visual    intlist      VisualType=          1 0 0 0 2 // Feedback type: 0 bar, 1 cursor, 2 none",
+            "Feedback:Visual    intlist      VisualType=          1 0 0 0 2 // Feedback type: 0 bar, 1 cursor, 2 color_change, 3 none",
             "Feedback:Audio     int          AudioFeedback=       0 0 0 1 // Play continuous sounds? (boolean)",
             "Feedback:Audio     matrix       AudioWavs=           2 1 300hz.wav 900hz.wav % % % // feedback wavs",
             "Feedback:Handbox   int          HandboxFeedback=     0 0 0 1 // Move handbox? (boolean)",
@@ -139,7 +139,13 @@ class FeedbackApp(object):
                         #Set cursor speed so that it takes entire feedback duration to go from bottom to top at amplitude 1 (= 1xvar; =10% ERD; =10%MVC)
                         app.curs_speed = scrsiz / fbblks #pixels per block
 
-                    elif app.vfb_type[j]==2: #None
+                    elif app.vfb_type[j]==2: #Color-change circle.
+                        app.col_zero = (0, 1, 0)#Green in the middle.
+                        app.stimulus('col_circle_'+str(j), z=3, stim=Disc(position=center, radius=100, color=app.col_zero, on=False))
+                        app.col_speed = 2 / fbblks #Colors will be mapped from -1 to +1
+                        app.vfb_keys.append('col_circle_'+str(j))
+
+                    elif app.vfb_type[j]==3: #None
                         app.stimulus('cursor_'+str(j), z=-10, stim=Disc(radius=0, color=(0,0,0,0), on=False))
                         app.vfb_keys.append('cursor_'+str(j))
 
@@ -231,7 +237,10 @@ class FeedbackApp(object):
     @classmethod
     def transition(cls,app,phase):
         if app.params['ContFeedbackEnable'].val:
-            t = app.states['LastTargetCode'] #What target are we on? TargetCode changes on GoCue transition.
+            #What target are we on?
+            #TargetCode and LastTargetCode are updated to the current target on GoCue transition.
+            #LastTargetCode will maintain the value of the most recent TargetCode even in Baseline.
+            t = app.states['LastTargetCode']
             app.states['Feedback'] = phase=='task' or app.params['BaselineFeedback'].val#Will we provide feedback this phase?
 
             #===================================================================
@@ -242,8 +251,7 @@ class FeedbackApp(object):
             if app.params['VisualFeedback'].val:
                 for j in range(app.nclasses):
                     app.stimuli[app.vfb_keys[j]].on = app.states['Feedback'] and j==t-1
-
-            # Non-visual feedback.
+            # Non-visual feedback should be turned off when states['Feedback'] is off.
             if not app.states['Feedback']:
                 if app.params['AudioFeedback'].val:
                     for snd in app.sounds: snd.vol=0.0
@@ -261,12 +269,19 @@ class FeedbackApp(object):
                 pass #Feedback elements don't change in transition to baseline.
             elif phase == 'gocue': #We have our new target code.
                 if app.params['VisualFeedback'].val: #Visual _targets_
-                    for j in range(app.nclasses):#Update which targets are on
-                        app.stimuli['target_'+str(j)].on = j==t-1
+                    for j in range(app.nclasses):
+                        app.stimuli['target_'+str(j)].on = j==t-1#Update which targets are on
+
+                    if app.vfb_type[t-1] == 2:
+                        app.screen.color = [2-t,0.5,t-1]#1,0.5,0 when t==1, 0,0.5,1 when t==2. Low-alpha to soften.
+                    else:
+                        app.screen.color = [0,0,0]
                     #===========================================================
                     # app.stimuli['arrow'].color = map(lambda x:int(x==t), [2,1,3])
                     # app.stimuli['arrow'].angle = 180*(2 - t)
                     #===========================================================
+                    #Individual feedback elements are checked on every phase transition (above)
+
                 if app.params['AudioFeedback'].val:
                     for j in range(app.nclasses): app.sounds[j].vol = float(j==t-1)
             elif phase == 'task':
@@ -282,7 +297,7 @@ class FeedbackApp(object):
     @classmethod
     def process(cls,app,sig):
         if int(app.params['ContFeedbackEnable'])==1 and app.states['Feedback']:
-            t = app.states['LastTargetCode']
+            t = app.states['LastTargetCode'] #Use LastTargetCode because it doesn't go to 0 between trials.
 
             if app.params['FakeFeedback'].val:
                 trial_i = app.states['CurrentTrial']-1 if app.states['CurrentTrial'] < app.fake_data.shape[0] else random.uniform(0,app.params['TrialsPerBlock'])
@@ -301,7 +316,7 @@ class FeedbackApp(object):
             x = min(x, 3.26)
             x = max(x, -3.26)
             temp_x = x * 10000
-            app.states['FBValue'] = np.uint16(temp_x)
+            app.states['FBValue'] = np.uint16(temp_x) #0-32767 for positive, 65536-32768 for negative
             app.states['FBBlock'] = app.states['FBBlock'] + 1
 
             #Pull x back from the state into the range -10,10. This is useful in case enslave states is used.
@@ -313,12 +328,24 @@ class FeedbackApp(object):
                     update_by = 0.0 if not app.in_phase('task') and app.params['BaselineConstant'] else x
                     app.bars[int(app.vfb_keys[t-1][-1])-1].set(update_by) #e.g. "barrect_1" take the "1"
                 elif app.vfb_type[t-1] == 1: #cursor
-                        new_pos = this_fb.position
-                        new_pos[1] = new_pos[1] + app.curs_speed * x #speed is pixels per block
-                        new_pos[1] = min(new_pos[1], app.scrh) #Never move the position off the top
-                        new_pos[1] = max(new_pos[1], 0) #Never move the position off the bottom
-                        this_fb.position = app.positions['origin'].A.ravel().tolist()\
-                            if not app.in_phase('task') and app.params['BaselineConstant'] else new_pos
+                    new_pos = this_fb.position
+                    new_pos[1] = new_pos[1] + app.curs_speed * x #speed is pixels per block
+                    new_pos[1] = min(new_pos[1], app.scrh) #Never move the position off the top
+                    new_pos[1] = max(new_pos[1], 0) #Never move the position off the bottom
+                    this_fb.position = app.positions['origin'].A.ravel().tolist()\
+                        if not app.in_phase('task') and app.params['BaselineConstant'] else new_pos
+                elif app.vfb_type[t-1] == 2: #color-changing circle.
+                    fake_y = this_fb.color[0] - this_fb.color[2]#convert old color to a position on -1 to +1 scale.
+                    fake_y = fake_y + app.col_speed * x#increment the position
+                    fake_y = max(-1, fake_y)
+                    fake_y = min(1, fake_y)
+                    new_r = fake_y if fake_y >= 0 else 0
+                    new_g = 1-0.5*abs(fake_y)
+                    new_b = -1*fake_y if fake_y<=0 else 0
+                    new_color = app.col_zero if not app.in_phase('task')\
+                        and app.params['BaselineConstant'] else [new_r, new_g, new_b]#convert the position to color
+                    #if app.states['FBBlock']>150: app.dbstop()
+                    this_fb.color = new_color
 
                 #===============================================================
                 # Modify the color of the visual targets if we are in range.
@@ -330,7 +357,7 @@ class FeedbackApp(object):
 
                 for j in range(app.nclasses):
                     app.stimuli['target_'+str(j)].color = [1-in_range, in_range, 0]
-                app.stimuli['fixation'].color = [1-in_range, in_range, 0]
+                #app.stimuli['fixation'].color = [1-in_range, in_range, 0]#fixation color doesn't need to change.
 
             if app.params['AudioFeedback'].val and not app.in_phase('gocue'):
                 #app.fader_val from -1 to +1

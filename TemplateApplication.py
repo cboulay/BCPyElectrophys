@@ -269,11 +269,10 @@ class BciApplication(BciGenericApplication):
         #Do I need the new TargetCode in baseline for any of the addons?
         #If not, then it belongs in gocue for consistency with regular BCI2000 modules.
 
-
         elif phase == 'gocue':
             self.states['TargetCode'] = self.target_codes[self.states['CurrentTrial']-1]
             t = self.states['TargetCode'] #It's useful to pull from states in case "enslave states" is used.
-            self.states['LastTargetCode'] = t
+            self.states['LastTargetCode'] = t#LastTargetCode maintains throughout baseline.
             self.stimuli['cue'].text = self.params['GoCueText'][t-1]
 
         elif phase == 'task':
