@@ -311,9 +311,9 @@ class BciApplication(BciGenericApplication):
 
         #If we are in Task, and we are using GatingApp or MagstimApp or DigitimerApp
         if self.in_phase('task', min_packets=self.states['TaskNBlocks']):
-            criteria_met = not int(self.params['GatingEnable']) or self.states['GatingOK']
-            magstim_ready = not int(self.params['MSEnable']) or self.states['MagstimReady']
-            digitimer_ready = not int(self.params['DigitimerEnable']) or self.states['DigitimerReady']
+            criteria_met = not 'GatingEnable' in self.params or not int(self.params['GatingEnable']) or self.states['GatingOK']
+            magstim_ready = not 'MSEnable' in self.params or not int(self.params['MSEnable']) or self.states['MagstimReady']
+            digitimer_ready = not 'DigitimerEnable' in self.params or not int(self.params['DigitimerEnable']) or self.states['DigitimerReady']
             if criteria_met and magstim_ready and digitimer_ready:
                 self.change_phase('response')
 
