@@ -1,5 +1,3 @@
-These modules are for use with [BCPy2000](http://bci2000.org/downloads/BCPy2000/BCPy2000.html).
-
 1. Installation
 2. TemplateApplication
 3. ContingencyExtension
@@ -17,10 +15,10 @@ by BCPy2000, and since I use Python for other things
 
 ### Install BCI2000
 The [BCI2000 and BCPy2000 binaries](http://www.bci2000.org/wiki/index.php/BCI2000_Binaries)
-are probably good enough, but the Python framework that ships with the compiled binaries is out of date.
+are probably good enough, but the Python framework that ships with the compiled binaries may be out of date.
 The best way to get the latest Python framework is by downloading the code through SVN.
 Since I'm recommending you compile from source code for part of the job,
-you may as well use it for the whole job.
+you may as well do so for the whole job.
 Follow the instructions
 [here](http://www.bci2000.org/wiki/index.php/Programming_Reference:BCI2000_Source_Code).
 In brief:
