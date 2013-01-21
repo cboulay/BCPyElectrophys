@@ -9,10 +9,7 @@ These modules are for use with [BCPy2000](http://bci2000.org/downloads/BCPy2000/
 7. ERPExtension
 
 ## Installation
-Since these modules are for BCPy2000, you must have
-[BCPy2000](http://bci2000.org/downloads/BCPy2000/BCPy2000.html) installed.
-Read on for specific BCPy2000 instructions.
-
+These files are for use with [BCPy2000](http://bci2000.org/downloads/BCPy2000/BCPy2000.html).
 BCPy2000 can be installed in an isolated environment (see its FullMonty install) or in conjunction
 with an existing Python installation. Since I require packages in addition to those required
 by BCPy2000, and since I use Python for other things
@@ -87,7 +84,12 @@ Git:
 Change to BCI2000's parent directory. `git checkout git://github.com/cboulay/BCPyElectrophys.git`
 
 Tag:
-TODO: Tag this release.
+Click on Tags near the top right of this page. Download the source code in an archive.
+Extract the contents of the archive (i.e., its root folder) into BCI2000's parent folder.
+You should have \parent\BCI2000 and \parent\BCPyElectrophys-vx.x
+
+Test it by changing to the BCPyElectrophys folder and running `test.bat`.
+Nothing is enabled by default, but you should be able to see the debug information showing task progression.
 
 # Description
 

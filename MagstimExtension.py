@@ -17,8 +17,8 @@ class MagstimApp(object):
             "PythonApp:Magstim        int        MSTriggerType= 0 0 0 2 // Trigger by: 0 SerialPort, 1 Contec1, 2 Contec2 (enumeration)",
             "PythonApp:Magstim        int        MSReqStimReady= 0 0 0 1 // Require ready response to trigger: 0 no, 1 yes (boolean)",
             "PythonApp:Magstim        float      MSISIMin= 6 6 2 % // Minimum time s between stimuli",
-            "PythonApp:Magstim        intlist    MSIntensityA= 1 50 0 0 100 // TS for single, CS for double",
-            "PythonApp:Magstim        intlist    MSIntensityB= 1 0 0 0 100 // TS for double",
+            "PythonApp:Magstim        intlist    MSIntensityA= 1 50 0 0 100 // TS if single-pulse, CS if double-pulse",
+            "PythonApp:Magstim        intlist    MSIntensityB= 1 0 0 0 100 // TS if double-pulse",
             "PythonApp:Magstim        floatlist    MSPulseInterval= 1 0 0 0 999 // Double-pulse interval in ms",
         ]
     states = [
@@ -27,14 +27,14 @@ class MagstimApp(object):
             "MSIntensityB 16 0 0 0", #Intensity of StimA
             "ISIx10 16 0 0 0", #Double-pulse ISI in 0.1ms
         ]
-    
+
     @classmethod
     def preflight(cls, app, sigprops):
         if int(app.params['MSEnable'])==1:
             app.magstimA = app.params['MSIntensityA'].val if len(app.params['MSIntensityA']) == app.nclasses else [app.params['MSIntensityA'].val[0] for x in range(app.nclasses)]
             app.magstimB = app.params['MSIntensityB'].val if len(app.params['MSIntensityB']) == app.nclasses else [app.params['MSIntensityB'].val[0] for x in range(app.nclasses)]
             app.magstimISI = app.params['MSPulseInterval'].val if len(app.params['MSPulseInterval']) == app.nclasses else [app.params['MSPulseInterval'].val[0] for x in range(app.nclasses)]
-            
+
     @classmethod
     def initialize(cls, app, indim, outdim):
         if int(app.params['MSEnable'])==1:
@@ -50,42 +50,42 @@ class MagstimApp(object):
             app.magstim=Bistim(port=serPort, trigbox=app.trigbox)
             #app.intensity_detail_name = 'dat_TMS_powerA'
             app.magstim.remocon = True
-            
+
             app.magstim.intensity = app.magstimA[0]
             app.magstim.intensityb = app.magstimB[0]
             app.magstim.ISI = app.magstimISI[0]
             #app.magstim.armed = True
             app.magstim.remocon = False
-                
+
             if int(app.params['ShowSignalTime']):
                 app.addstatemonitor('MagstimReady')
                 app.addstatemonitor('MSIntensityA')
                 app.addstatemonitor('MSIntensityB')
                 app.addstatemonitor('ISIx10')
-    
+
     @classmethod
     def halt(cls,app):
         #Clear magstim from memory, which will also clear the serial port.
         app.magstim.__del__()
-    
+
     @classmethod
     def startrun(cls,app):
         if int(app.params['MSEnable'])==1:
             app.forget('tms_trig')#Pretend that there was a stimulus at time 0 so that the min ISI check works on the first trial.
-        
+
     @classmethod
     def stoprun(cls,app):
         if int(app.params['MSEnable'])==1: pass
-    
+
     @classmethod
     def transition(cls,app,phase):
         if int(app.params['MSEnable'])==1:
             if phase == 'intertrial':
                 app.magstim.remocon = False
-                
-            elif phase == 'baseline': 
+
+            elif phase == 'baseline':
                 pass
-            
+
             elif phase == 'gocue': #New TargetCode is set in the application transition to gocue
                 #I hope this is enough time to set a new intensity. It should be if we are already armed.
                 app.magstim.remocon = True
@@ -93,10 +93,10 @@ class MagstimApp(object):
                 app.magstim.intensityb = app.magstimB[app.states['TargetCode']-1] if app.magstim.intensityb in app.magstimB else app.magstim.intensityb
                 app.magstim.ISI = app.magstimISI[app.states['TargetCode']-1] if app.magstim.ISI in app.magstimISI else app.magstim.ISI
                 app.magstim.remocon = False
-                
+
             elif phase == 'task':
                 pass
-                
+
             elif phase == 'response':
                 app.magstim.remocon = True
                 #app.magstim.armed = True
@@ -106,21 +106,21 @@ class MagstimApp(object):
                 app.states['ISIx10'] = app.magstim.ISI
                 app.remember('tms_trig')
                 app.magstim.armed = False
-                
+
             elif phase == 'stopcue':
                 pass
-    
+
     @classmethod
     def process(cls,app,sig):
         if int(app.params['MSEnable'])==1:
-            
+
             #Arm the coil if it is not armed and should be.
             if not app.magstim.armed and not (app.in_phase('response') or app.in_phase('stopcue')):
                 #We avoid arming in response or stopcue so the arming artifact doesn't affect the ERP.
                 if not app.magstim.remocon: app.magstim.remocon = True
                 app.magstim.armed = True
                 app.magstim.remocon = False#Toggle remocon so that we can manually adjust the intensity.
-                
+
             ####################################
             # Update the StimulatorReady state #
             ####################################
@@ -128,7 +128,7 @@ class MagstimApp(object):
             #stim_ready = True #Use this for debugging
             isiok = app.since('tms_trig')['msec'] >= 1000.0 * float(app.params['MSISIMin'])
             app.states['MagstimReady'] = stim_ready and isiok
-    
+
     @classmethod
     def event(cls, app, phasename, event):
         if int(app.params['MSEnable'])==1 and event.type == pygame.locals.KEYDOWN and event.key in [pygame.K_UP, pygame.K_DOWN]:

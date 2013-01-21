@@ -20,7 +20,7 @@ class GatingApp(object):
               #"Tab:SubSection DataType Name= Value DefaultValue LowRange HighRange // Comment (identifier)",
               #See further details http://bci2000.org/wiki/index.php/Technical_Reference:Parameter_Definition
             "PythonApp:Gating    int          GatingEnable= 0 0 0 1 // Enable: 0 no, 1 yes (boolean)",
-            "PythonApp:Gating    list         GatingChannel= 1 EDC_AAA % % % // Input channel on which the criteria are evaluated",
+            "PythonApp:Gating    list         GatingChannel= 1 1 % % % // Input channel on which the criteria are evaluated",
             "PythonApp:Gating    float        DurationMin= 2.6 2.6 0 % // Duration s which signal must continuously meet criteria before triggering",
             "PythonApp:Gating    float        DurationRand= 0.3 0.3 0 % // Randomization s around the duration",
             "PythonApp:Gating    int          GatingReset= 1 1 0 1 // Counter resets when exiting range: 0 no, 1 yes (boolean)",

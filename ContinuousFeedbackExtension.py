@@ -9,8 +9,8 @@ class FeedbackApp(object):
     params = [
               #"Tab:SubSection DataType Name= Value DefaultValue LowRange HighRange // Comment (identifier)",
               #See further details http://bci2000.org/wiki/index.php/Technical_Reference:Parameter_Definition
-            "Feedback:Design    int          ContFeedbackEnable=  0 0 0 1 // Enable: 0 no, 1 yes (boolean)",
-            "Feedback:Design    list         FeedbackChannels=    1 EDC_AAA % % % // Channel(s) for feedback",
+            "Feedback:Design    int          ContFeedbackEnable=  0 0 0 1 // Enable. Choose feedback below.: 0 no, 1 yes (boolean)",
+            "Feedback:Design    list         FeedbackChannels=    1 1 % % % // Channel(s) for feedback",
             #Sometimes we want to save some data (via ERPExtension) that is not fed back,
             #so the signal processing module will pass in more data than we need for feedback. Thus we need to select FeedbackChannels.
             "Feedback:Design    int          BaselineFeedback=    0 % % % // Should feedback be provided outside task? (boolean)",
@@ -37,7 +37,7 @@ class FeedbackApp(object):
             "FBBlock   16 0 0 0", #Number of blocks that feedback has been on. Necessary for fake feedback.
             "Feedback 1 0 0 0", #Whether or not stimuli are currently presented.
         ]
-    
+
     @classmethod
     def preflight(cls, app, sigprops):
         if int(app.params['ContFeedbackEnable'])==1:
@@ -53,10 +53,10 @@ class FeedbackApp(object):
                 nf = [x for x in fch if x < 1 or x > len(chn) or x != round(x)]
                 if len(nf): raise EndUserError, "Illegal FeedbackChannel: %s" % str(nf)
                 app.fbchan = [x-1 for x in fch]
-                
+
             app.fbchan = app.fbchan if len(app.fbchan) == app.nclasses else [fbchan[0] for x in range(app.nclasses)]
             app.vfb_type = app.params['VisualType'].val if len(app.params['VisualType']) == app.nclasses else [app.params['VisualType'].val[0] for x in range(app.nclasses)]
-    
+
     @classmethod
     def initialize(cls, app, indim, outdim):
         if int(app.params['ContFeedbackEnable'])==1:
@@ -64,7 +64,7 @@ class FeedbackApp(object):
                 app.addstatemonitor('FBValue')
                 app.addstatemonitor('FBBlock')
                 app.addstatemonitor('Feedback')
-            
+
             #===================================================================
             # Load fake data if we will be using fake feedback.
             #===================================================================
@@ -73,14 +73,14 @@ class FeedbackApp(object):
                 fp=app.params['FakeFile']
                 app.fake_data = np.genfromtxt(fp, delimiter=',')
                 np.random.shuffle(app.fake_data)
-            
+
             #===================================================================
             # We need to know how many blocks per feedback period
             # so (non-bar) feedback can be scaled appropriately.
             #===================================================================
             fbdur = app.params['TaskDur'].val #feedback duration
             fbblks = fbdur * app.eegfs / app.spb #feedback blocks
-            
+
             #===================================================================
             # Visual Feedback
             #===================================================================
@@ -94,7 +94,7 @@ class FeedbackApp(object):
                 #b is now our perfect box taking up as much of our screen as we are going to use.
                 #its center is the center pixel, its width and height are equal to the smallest of screen width and height
                 center = b.map((0.5,0.5), 'position') #what is the center pixel value? e.g.([400.0, 225.0])
-                
+
                 #===================================================================
                 # TODO: Get the arrows working for more than 2 targets
                 #===================================================================
@@ -103,11 +103,11 @@ class FeedbackApp(object):
                 # arrow = PolygonTexture(frame=b, vertices=((0.22,0.35),(0,0.35),(0.5,0),(1,0.35),(0.78,0.35),(0.78,0.75),(0.22,0.75),),\
                 #                    color=(1,1,1), on=False, position=center)
                 # app.stimulus('arrow', z=4.5, stim=arrow)#Register the arrow stimulus.
-                # 
+                #
                 # b.scale(x=4.0, y=2.5)#Reset the box
                 # b.anchor='center'#Reset the box
                 #===============================================================
-                
+
                 #===============================================================
                 # Target rectangles.
                 #===============================================================
@@ -117,11 +117,11 @@ class FeedbackApp(object):
                     targ_h = int((my_target[1] - my_target[0]) * scrsiz / 200.0)
                     targ_y = int(center[1] + (my_target[0] + my_target[1]) * scrsiz / 400.0)
                     app.stimulus('target_'+str(x), z=2, stim= Block(position = [center[0], targ_y], size = [targtw * scrsiz, targ_h], color=(1, 0.1, 0.1, 0.5), on=False))
-                
+
                 #Our feedback will range from -10 to +10
                 app.m=app.scrh/20.0#Conversion factor from signal amplitude to pixels.
                 app.b_offset=app.scrh/2.0 #Input 0.0 should be at this pixel value.
-                
+
                 #===============================================================
                 # Add feedback elements
                 #===============================================================
@@ -132,13 +132,13 @@ class FeedbackApp(object):
                         app.vfb_keys.append('barrect_' + str(len(app.bars)))
                         app.stimuli['bartext_'+ str(len(app.bars))].position=(50,50)#off in the lower corner
                         app.stimuli['bartext_'+ str(len(app.bars))].color=[0,0,0]#hide it
-                        
+
                     elif app.vfb_type[j]==1: #Cursor
                         app.stimulus('cursor_'+str(j), z=3, stim=Disc(radius=10, color=(1,1,1), on=False))
                         app.vfb_keys.append('cursor_'+str(j))
                         #Set cursor speed so that it takes entire feedback duration to go from bottom to top at amplitude 1 (= 1xvar; =10% ERD; =10%MVC)
                         app.curs_speed = scrsiz / fbblks #pixels per block
-                    
+
                     elif app.vfb_type[j]==2: #None
                         app.stimulus('cursor_'+str(j), z=-10, stim=Disc(radius=0, color=(0,0,0,0), on=False))
                         app.vfb_keys.append('cursor_'+str(j))
@@ -146,7 +146,7 @@ class FeedbackApp(object):
             #===================================================================
             # Audio Feedback
             #===================================================================
-            if app.params['AudioFeedback'].val:    
+            if app.params['AudioFeedback'].val:
             # load, and silently start, the sounds
             # They will be used for cues and for feedback.
                 app.sounds = []
@@ -161,7 +161,7 @@ class FeedbackApp(object):
                     snd.play(-1)
                 #Set the speed at which the fader can travel from -1 (sounds[0]) to +1 (sounds[1])
                 app.fader_speed = 2 / fbblks
-            
+
             #===================================================================
             # Handbox Feedback
             #===================================================================
@@ -172,7 +172,7 @@ class FeedbackApp(object):
                 #When x is +1, we have ERD relative to baseline
                 #It should take fbblks at x=+1 to travel from 90 to 0
                 app.hand_speed = -90 / fbblks #hand speed in degrees per block when x=+1
-                
+
             #===================================================================
             # Neuromuscular Electrical Stimulation Feedback
             #===================================================================
@@ -183,32 +183,32 @@ class FeedbackApp(object):
                 serPort=app.params['NMESPort'].val
                 app.nmes=NMES(port=serPort)
                 app.nmes.width = 1.0
-                
+
                 #from Caio.NMES import NMESFIFO
                 ##from Caio.NMES import NMESRING
                 #app.nmes = NMESFIFO()
                 ##app.nmes = NMESRING()
                 #app.nmes.running = True
-                
+
                 #It should take fbblks at x=+1 to get intensity from min to max
                 app.nmes_baseline = stimrange[0]
                 app.nmes_max = stimrange[1]
                 app.nmes_i = app.nmes.intensity
                 app.nmes_speed = (stimrange[1]-stim_min) / float(fbblks) #nmes intensity rate of change per block when x=+1
-                
+
                 #app.nmes_baseline = stimrange[0]
                 #app.nmes_max = stimrange[1]
                 #for i in np.arange(0.1,2*app.nmes_baseline-app.nmes_max,0.1):
                 #    app.nmes.amplitude = i
                 #    time.sleep(0.1)
                 #app.nmes_speed = float(2) * (app.nmes_max - app.nmes_baseline) / float(fbblks)
-        
+
     @classmethod
     def halt(cls,app):
         if int(app.params['ContFeedbackEnable'])==1:
             #TODO: Delete app.nmes, app.handbox, remove the meters.
             pass
-    
+
     @classmethod
     def startrun(cls,app):
         if int(app.params['ContFeedbackEnable'])==1:
@@ -219,7 +219,7 @@ class FeedbackApp(object):
             if int(app.params['NMESFeedback']):
                 app.nmes_i = 0
                 app.nmes.intensity = 0
-    
+
     @classmethod
     def stoprun(cls,app):
         if int(app.params['ContFeedbackEnable'])==1:
@@ -227,24 +227,24 @@ class FeedbackApp(object):
                 for snd in app.sounds: snd.vol = 0.0
             if int(app.params['NMESFeedback']):
                 app.nmes.stop()
-    
+
     @classmethod
     def transition(cls,app,phase):
         if app.params['ContFeedbackEnable'].val:
             t = app.states['LastTargetCode'] #What target are we on? TargetCode changes on GoCue transition.
             app.states['Feedback'] = phase=='task' or app.params['BaselineFeedback'].val#Will we provide feedback this phase?
-            
+
             #===================================================================
             # For every transition, we will manage the on/off state of our feedback elements.
             #===================================================================
-            
+
             # Visual feedback elements (bars, cursors, etc)
             if app.params['VisualFeedback'].val:
                 for j in range(app.nclasses):
                     app.stimuli[app.vfb_keys[j]].on = app.states['Feedback'] and j==t-1
-            
+
             # Non-visual feedback.
-            if not app.states['Feedback']:        
+            if not app.states['Feedback']:
                 if app.params['AudioFeedback'].val:
                     for snd in app.sounds: snd.vol=0.0
                 if int(app.params['NMESFeedback']):
@@ -278,12 +278,12 @@ class FeedbackApp(object):
                     app.stimuli['target_'+str(j)].on = app.stimuli['target_'+str(j)].on and app.states['Feedback']
             elif phase == 'stopcue':
                 pass
-    
+
     @classmethod
     def process(cls,app,sig):
         if int(app.params['ContFeedbackEnable'])==1 and app.states['Feedback']:
             t = app.states['LastTargetCode']
-            
+
             if app.params['FakeFeedback'].val:
                 trial_i = app.states['CurrentTrial']-1 if app.states['CurrentTrial'] < app.fake_data.shape[0] else random.uniform(0,app.params['TrialsPerBlock'])
                 fake_block_ix = np.min((app.fake_data.shape[1],app.states['FBBlock']))
@@ -296,17 +296,17 @@ class FeedbackApp(object):
                 #===============================================================
                 x = sig[app.fbchan,:].mean(axis=1)#Extract the feedback channels.
                 x = x.A.ravel()[t-1]/3#Transform x to a measure mostly ranging from -3.26 to +3.26 SDs->Necessary for 16-bit integer state
-                
+
             #Save x to a state of uint16
             x = min(x, 3.26)
             x = max(x, -3.26)
             temp_x = x * 10000
             app.states['FBValue'] = np.uint16(temp_x)
             app.states['FBBlock'] = app.states['FBBlock'] + 1
-            
+
             #Pull x back from the state into the range -10,10. This is useful in case enslave states is used.
             x = np.int16(app.states['FBValue']) * 3.0 / 10000.0
-            
+
             if app.params['VisualFeedback'].val:
                 this_fb = app.stimuli[app.vfb_keys[t-1]]
                 if app.vfb_type[t-1]==0:#bar
@@ -319,7 +319,7 @@ class FeedbackApp(object):
                         new_pos[1] = max(new_pos[1], 0) #Never move the position off the bottom
                         this_fb.position = app.positions['origin'].A.ravel().tolist()\
                             if not app.in_phase('task') and app.params['BaselineConstant'] else new_pos
-                        
+
                 #===============================================================
                 # Modify the color of the visual targets if we are in range.
                 #===============================================================
@@ -327,11 +327,11 @@ class FeedbackApp(object):
                     in_range = app.states['InRange']
                 else:
                     in_range = (10*x >= app.target_range[t-1][0]) and (10*x <= app.target_range[t-1][1])
-                
+
                 for j in range(app.nclasses):
                     app.stimuli['target_'+str(j)].color = [1-in_range, in_range, 0]
                 app.stimuli['fixation'].color = [1-in_range, in_range, 0]
-                    
+
             if app.params['AudioFeedback'].val and not app.in_phase('gocue'):
                 #app.fader_val from -1 to +1
                 #can increment or decrement at app.fader_speed
@@ -341,13 +341,13 @@ class FeedbackApp(object):
                 if not app.in_phase('task') and app.params['BaselineConstant']: app.fader_val = 0
                 app.sounds[0].vol = 0.5 * (1 - app.fader_val)
                 app.sounds[1].vol = 0.5 * (1 + app.fader_val)
-            
+
             if app.params['HandboxFeedback'].val:
                 angle = app.handbox.position
                 angle = angle + app.hand_speed * x
                 if not app.in_phase('task') and app.params['BaselineConstant']: angle = 45
                 app.handbox.position = angle
-                
+
             if app.params['NMESFeedback'].val:
                 app.nmes_i = app.nmes_i + app.nmes_speed * x
                 app.nmes_i = min(app.nmes_i, app.nmes_max)

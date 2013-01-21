@@ -45,7 +45,7 @@ class BciApplication(BciGenericApplication):
         params = [
             "PythonApp:Design	list	GoCueText=		 	2 Imagery Rest % % % // Text for cues. Defines N targets",
             "PythonApp:Design	int		ClusterTargets=    	1     1     0   %  // Size of pseudorandomized target clusters or cycle(0)",
-            "PythonApp:Design	matrix  TargetRange= {1 2} {Min Max} 80.0 100.0 -100.0 -80.0 0 -100 100 //Row for each target, Cols for Min(-100), Max(+100)",
+            "PythonApp:Design	matrix  TargetRange= {1 2} {Min Max} -100.0 -80.0 80.0 100.0 0 -100 100 //Row for each target, Cols for Min(-100), Max(+100)",
             "PythonApp:Design  float	IntertrialDur=	  	0.5   0.5   0.0 100.0 // Intertrial duration in seconds",
             "PythonApp:Design  float	BaselineDur=		4.0   4.0   0.0 100.0 // Baseline duration in seconds",
             "PythonApp:Design   float	GoCueDur=	  		1.0   1.0   0.0 100.0 // GoCue duration in seconds",
