@@ -54,7 +54,7 @@ class FeedbackApp(object):
                 if len(nf): raise EndUserError, "Illegal FeedbackChannel: %s" % str(nf)
                 app.fbchan = [x-1 for x in fch]
 
-            app.fbchan = app.fbchan if len(app.fbchan) == app.nclasses else [fbchan[0] for x in range(app.nclasses)]
+            app.fbchan = app.fbchan if len(app.fbchan) == app.nclasses else [app.fbchan[0] for x in range(app.nclasses)]
             app.vfb_type = app.params['VisualType'].val if len(app.params['VisualType']) == app.nclasses else [app.params['VisualType'].val[0] for x in range(app.nclasses)]
 
     @classmethod
@@ -323,7 +323,7 @@ class FeedbackApp(object):
                 #===============================================================
                 # Modify the color of the visual targets if we are in range.
                 #===============================================================
-                if app.params['ContingencyEnable'].val:
+                if app.params['GatingEnable'].val:
                     in_range = app.states['InRange']
                 else:
                     in_range = (10*x >= app.target_range[t-1][0]) and (10*x <= app.target_range[t-1][1])

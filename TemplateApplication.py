@@ -77,6 +77,8 @@ class BciApplication(BciGenericApplication):
         # we must assume the user may wish to include all extensions, thus we
         # extend params and states here for all extensions. You may comment out
         # the lines corresponding to the extensions you know you will not use.
+        # You should also comment out their imports at the top.
+        # Then save this as a new Application.py file.
         #=======================================================================
 
         params.extend(GatingApp.params)
@@ -104,7 +106,7 @@ class BciApplication(BciGenericApplication):
 
         n_trials = self.params['TrialsPerBlock'].val * self.params['BlocksPerRun'].val
         trials_per_class = int(n_trials / self.nclasses)
-        if not (self.params['ClusterTargets']>0 and trials_per_class % self.params['ClusterTargets'].val == 0):
+        if self.params['ClusterTargets'].val>0 and not (trials_per_class % self.params['ClusterTargets'].val == 0):
             raise EndUserError, "ClusterTargets must be a integer factor of the number of trials per target"
 
         #If using gating or visual feedback, check that the target ranges make sense.
@@ -115,11 +117,11 @@ class BciApplication(BciGenericApplication):
             if any([ar[(0,0)] > ar[(0,1)] for ar in targrange]): raise EndUserError, "TargetRange must be in increasing order"
             self.target_range=np.asarray(targrange,dtype='float64')
 
-        GatingApp.preflight(self, sigprops)
-        MagstimApp.preflight(self, sigprops)
-        DigitimerApp.preflight(self, sigprops)
-        ERPApp.preflight(self, sigprops)
-        FeedbackApp.preflight(self, sigprops)
+        if 'GatingEnable' in self.params:	GatingApp.preflight(self, sigprops)
+        if 'MSEnable' in self.params:	MagstimApp.preflight(self, sigprops)
+        if 'DigitimerEnable' in self.params:	DigitimerApp.preflight(self, sigprops)
+        if 'ERPDatabaseEnable' in self.params:	ERPApp.preflight(self, sigprops)
+        if 'ContFeedbackEnable' in self.params:	FeedbackApp.preflight(self, sigprops)
 
     #############################################################
     def Initialize(self, indim, outdim):
@@ -131,7 +133,8 @@ class BciApplication(BciGenericApplication):
         classes_per_cluster = self.params['ClusterTargets'].val
         trials_per_class = int(n_trials / self.nclasses)
         if classes_per_cluster == 0: #We will cycle through targets.
-            self.target_codes = 1 + [item for sublist in [range(self.nclasses) for j in range(trials_per_class)] for item in sublist]
+            self.target_codes = [item for sublist in [range(self.nclasses) for j in range(trials_per_class)] for item in sublist]
+            self.target_codes = [x+1 for x in self.target_codes]
         elif classes_per_cluster ==1:
             self.target_codes = [1 + x / trials_per_class for x in range(n_trials)] #Forcing int yields e.g., [0,0,0,1,1,1,2,2,2]
             shuffle(self.target_codes)
@@ -199,38 +202,38 @@ class BciApplication(BciGenericApplication):
             m.func = lambda x: '% 6.1fHz' % x.estimated.get('FramesPerSecond',{}).get('running', 0)
             m.pargs = (self,)
 
-        MagstimApp.initialize(self, indim, outdim)
-        DigitimerApp.initialize(self, indim, outdim)
-        GatingApp.initialize(self, indim, outdim)
-        ERPApp.initialize(self, indim, outdim)
-        FeedbackApp.initialize(self, indim, outdim)
+        if 'MSEnable' in self.params:	MagstimApp.initialize(self, indim, outdim)
+        if 'DigitimerEnable' in self.params:	DigitimerApp.initialize(self, indim, outdim)
+        if 'GatingEnable' in self.params:	GatingApp.initialize(self, indim, outdim)
+        if 'ERPDatabaseEnable' in self.params:	ERPApp.initialize(self, indim, outdim)
+        if 'ContFeedbackEnable' in self.params:	FeedbackApp.initialize(self, indim, outdim)
 
     #############################################################
     def Halt(self):
-        if self.params.has_key('MSEnable') and self.params['MSEnable'].val: MagstimApp.halt(self)
-        if self.params.has_key('DigitimerEnable') and self.params['DigitimerEnable'].val: DigitimerApp.halt(self)
-        if self.params.has_key('GatingEnable') and self.params['GatingEnable'].val: GatingApp.halt(self)
-        if self.params.has_key('ERPDatabaseEnable') and self.params['ERPDatabaseEnable'].val: ERPApp.halt(self)
-        if self.params.has_key('ContFeedbackEnable') and self.params['ContFeedbackEnable'].val: FeedbackApp.halt(self)
+        if 'MSEnable' in self.params:	MagstimApp.halt(self)
+        if 'DigitimerEnable' in self.params:	DigitimerApp.halt(self)
+        if 'GatingEnable' in self.params:	GatingApp.halt(self)
+        if 'ERPDatabaseEnable' in self.params:	ERPApp.halt(self)
+        if 'ContFeedbackEnable' in self.params:	FeedbackApp.halt(self)
 
     #############################################################
     def StartRun(self):
         #if int(self.params['ShowFixation']):
         self.states['LastTargetCode'] = self.target_codes[0]
         self.stimuli['fixation'].on = True
-        MagstimApp.startrun(self)
-        DigitimerApp.startrun(self)
-        GatingApp.startrun(self)
-        ERPApp.startrun(self)
-        FeedbackApp.startrun(self)
+        if 'MSEnable' in self.params:	MagstimApp.startrun(self)
+        if 'DigitimerEnable' in self.params:	DigitimerApp.startrun(self)
+        if 'GatingEnable' in self.params:	GatingApp.startrun(self)
+        if 'ERPDatabaseEnable' in self.params:	ERPApp.startrun(self)
+        if 'ContFeedbackEnable' in self.params:	FeedbackApp.startrun(self)
 
     #############################################################
     def StopRun(self):
-        MagstimApp.stoprun(self)
-        DigitimerApp.stoprun(self)
-        GatingApp.stoprun(self)
-        ERPApp.stoprun(self)
-        FeedbackApp.stoprun(self)
+        if 'MSEnable' in self.params:	MagstimApp.stoprun(self)
+        if 'DigitimerEnable' in self.params:	DigitimerApp.stoprun(self)
+        if 'GatingEnable' in self.params:	GatingApp.stoprun(self)
+        if 'ERPDatabaseEnable' in self.params:	ERPApp.stoprun(self)
+        if 'ContFeedbackEnable' in self.params:	FeedbackApp.stoprun(self)
 
     #############################################################
     def Phases(self):
@@ -289,22 +292,22 @@ class BciApplication(BciGenericApplication):
 
         self.stimuli['cue'].on = (phase in ['gocue', 'stopcue'])
 
-        MagstimApp.transition(self, phase)
-        DigitimerApp.transition(self, phase)
-        GatingApp.transition(self, phase)
-        ERPApp.transition(self, phase)
-        FeedbackApp.transition(self, phase)
+        if 'MSEnable' in self.params:	MagstimApp.transition(self, phase)
+        if 'DigitimerEnable' in self.params:	DigitimerApp.transition(self, phase)
+        if 'GatingEnable' in self.params:	GatingApp.transition(self, phase)
+        if 'ERPDatabaseEnable' in self.params:	ERPApp.transition(self, phase)
+        if 'ContFeedbackEnable' in self.params:	FeedbackApp.transition(self, phase)
 
     #############################################################
     def Process(self, sig):
         #Process is called on every packet
         #Phase transitions occur independently of packets
         #Therefore it is not desirable to use phases for application logic in Process
-        MagstimApp.process(self, sig)
-        DigitimerApp.process(self, sig)
-        GatingApp.process(self, sig)
-        ERPApp.process(self, sig)
-        FeedbackApp.process(self, sig)
+        if 'MSEnable' in self.params:	MagstimApp.process(self, sig)
+        if 'DigitimerEnable' in self.params:	DigitimerApp.process(self, sig)
+        if 'GatingEnable' in self.params:	GatingApp.process(self, sig)
+        if 'ERPDatabaseEnable' in self.params:	ERPApp.process(self, sig)
+        if 'ContFeedbackEnable' in self.params:	FeedbackApp.process(self, sig)
 
         #If we are in Task, and we are using GatingApp or MagstimApp or DigitimerApp
         if self.in_phase('task', min_packets=self.states['TaskNBlocks']):
@@ -325,11 +328,11 @@ class BciApplication(BciGenericApplication):
 
     #############################################################
     def Event(self, phase, event):
-        MagstimApp.event(self, phase, event)
-        DigitimerApp.event(self, phase, event)
-        GatingApp.event(self, phase, event)
-        ERPApp.event(self, phase, event)
-        FeedbackApp.event(self, phase, event)
+        if 'MSEnable' in self.params:	MagstimApp.event(self, phase, event)
+        if 'DigitimerEnable' in self.params:	DigitimerApp.event(self, phase, event)
+        if 'GatingEnable' in self.params:	GatingApp.event(self, phase, event)
+        if 'ERPDatabaseEnable' in self.params:	ERPApp.event(self, phase, event)
+        if 'ContFeedbackEnable' in self.params:	FeedbackApp.event(self, phase, event)
 
 #################################################################
 #################################################################
