@@ -122,7 +122,7 @@ timing and amplitude is determined by a Contec USB D/A device, requiring my
 ## ContinuousFeedbackExtension
 
 This extension enables continuous feedback of some signal. Feedback may be auditory,
-visual (a bar or a cursor), passive movement operated by a custom device we have,
+visual (a bar, a cursor, the color of a circle), passive movement operated by a custom device we have,
 or neuromuscular stimulation controlled by a custom device we have. Both the passive movement
 and NMES devices require another Python package that I have. I have not published this
 package because I am uncertain if it reveals any intellectual property. If you are
