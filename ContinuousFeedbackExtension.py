@@ -272,10 +272,11 @@ class FeedbackApp(object):
                     for j in range(app.nclasses):
                         app.stimuli['target_'+str(j)].on = j==t-1#Update which targets are on
 
-                    if app.vfb_type[t-1] == 2:
-                        app.screen.color = [2-t,0.5,t-1]#1,0.5,0 when t==1, 0,0.5,1 when t==2. Low-alpha to soften.
-                    else:
-                        app.screen.color = [0,0,0]
+                    if app.vfb_type[t-1] == 2:#Colored circles.
+                        is_rest = app.params['GoCueText'][t-1].lower() == "rest".lower()
+                        app.screen.color = [0,0.5,1] if is_rest else [1,0.5,0]#Target is blue for rest or orange for anything else.
+#                    else:
+#                        app.screen.color = [0,0,0]#Shouldn't be necessary because we go black during stopcue
                     #===========================================================
                     # app.stimuli['arrow'].color = map(lambda x:int(x==t), [2,1,3])
                     # app.stimuli['arrow'].angle = 180*(2 - t)
