@@ -142,7 +142,7 @@ class FeedbackApp(object):
                     elif app.vfb_type[j]==2: #Color-change circle.
                         app.col_zero = (0, 1, 0)#Green in the middle.
                         app.stimulus('col_circle_'+str(j), z=3, stim=Disc(position=center, radius=100, color=app.col_zero, on=False))
-                        app.col_speed = 2 / fbblks #Colors will be mapped from -1 to +1
+                        app.col_speed = 2*(2 / fbblks) #Colors will be mapped from -1 to +1. #Trying to double the speed to see if that helps.
                         app.vfb_keys.append('col_circle_'+str(j))
 
                     elif app.vfb_type[j]==3: #None
@@ -292,7 +292,7 @@ class FeedbackApp(object):
                 for j in range(app.nclasses):
                     app.stimuli['target_'+str(j)].on = app.stimuli['target_'+str(j)].on and app.states['Feedback']
             elif phase == 'stopcue':
-                pass
+                app.screen.color = [0,0,0]
 
     @classmethod
     def process(cls,app,sig):
