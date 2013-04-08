@@ -1,3 +1,7 @@
+This work is supported by the Japan Society for the Promotion of Science Postdoctoral Fellowship.
+This is being developed primarily as part of my postdoctoral fellowship in the Ushiba Lab
+at Keio University in Yokohama, Japan.
+
 1. Installation
 2. TemplateApplication
 3. ContingencyExtension
@@ -14,14 +18,14 @@ by BCPy2000, and since I use Python for other things
 ([see EERF](https://github.com/cboulay/EERF)), I prefer to use a full Python installation.
 
 ### Install BCI2000
-The [BCI2000 and BCPy2000 binaries](http://www.bci2000.org/wiki/index.php/BCI2000_Binaries)
-are probably good enough, but the Python framework that ships with the compiled binaries may be out of date.
-The best way to get the latest Python framework is by downloading the code through SVN.
-Since I'm recommending you compile from source code for part of the job,
-you may as well do so for the whole job.
+BCI2000 itself should be installed from the [pre-compiled binaries](http://www.bci2000.org/wiki/index.php/BCI2000_Binaries).
+Unfortunately, BCPy2000 is not included in either distribution. To get BCPy2000 we must download the source through SVN,
+compile the foundation, and install the framework.
+Since I'm recommending you compile from source code for the BCPy2000 part,
+you may as well do so for the whole BCI2000 part.
 Follow the instructions
 [here](http://www.bci2000.org/wiki/index.php/Programming_Reference:BCI2000_Source_Code).
-In brief:
+In brief (on Windows):
 
 1. Download and install [TortoiseSVN](http://tortoisesvn.net)
 2. Download and install [MS Visual Studio 2008 Express](http://www.microsoft.com/en-us/download/details.aspx?id=6506)(vcsetup.exe)
