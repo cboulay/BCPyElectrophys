@@ -4,7 +4,7 @@ Change directory $BCI2000LAUNCHDIR
 Show window; Set title ${Extract file base $0}
 Reset system
 Startup system localhost
-Start executable SignalGenerator --local
+Start executable SignalGenerator --local --FileFormat=Null
 Start executable SpectralSignalProcessing --local
 Start executable PythonApplication --local --PythonAppClassFile=..\..\BCPyElectrophys\TemplateApplication.py --PythonAppWD=..\..\BCPyElectrophys
 Wait for Connected

@@ -1,0 +1,3 @@
+[submodule "BCPyOgreRenderer"]
+	path = BCPyOgreRenderer
+	url = git://github.com/cboulay/BCPyOgreRenderer.git

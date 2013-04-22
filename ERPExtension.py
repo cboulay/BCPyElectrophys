@@ -230,23 +230,22 @@ class ERPApp(object):
     @classmethod
     def startrun(cls,app):
         if int(app.params['ERPDatabaseEnable'])==1:
-            app.states['ERPCollected'] = False
-
+			app.states['ERPCollected'] = False
             #===================================================================
             # Create a string of where this file is stored, what the period number is, and what the previous trial number is.
             #===================================================================
-            last_trial_number = app.subject.data.order_by('-datum_id').all()[0].number if app.subject.data.count() >0 else 0
-            files = ListDatFiles(app.params['DataDirectory'] + '/' + app.params['SubjectName'] + app.params['SubjectSession'])
-            if len(files)>0:
-                fname = files[-1]
-                fname = fname.replace(fname[-6:-4], str(int(fname[-6:-4])+1))
-            else:
-                fname = '%s/%s%s/%sS%sR01.dat' % (
-                              app.params['DataDirectory'],
-                              app.params['SubjectName'], app.params['SubjectSession'],
-                              app.params['SubjectName'], app.params['SubjectSession'])
-            log_entry = "%s opened after trial %i" % (fname, last_trial_number)
-            SubjectLog.objects.create(subject=app.subject, entry=log_entry)#Store the string in a subject log.
+			last_trial_number = app.subject.data.order_by('-datum_id').all()[0].number if app.subject.data.count() >0 else 0
+			files = ListDatFiles(app.params['DataDirectory'] + '\\' + app.params['SubjectName'] + app.params['SubjectSession'])
+			if len(files)>0:
+				fname = files[-1]
+				fname = fname.replace(fname[-6:-4], str(int(fname[-6:-4])+1))
+			else:
+				fname = '%s/%s%s/%sS%sR01.dat' % (
+							app.params['DataDirectory'],
+							app.params['SubjectName'], app.params['SubjectSession'],
+							app.params['SubjectName'], app.params['SubjectSession'])
+			log_entry = "%s opened after trial %i" % (fname, last_trial_number)
+			SubjectLog.objects.create(subject=app.subject, entry=log_entry)#Store the string in a subject log.
 
     @classmethod
     def stoprun(cls,app):
