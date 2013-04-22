@@ -2,7 +2,8 @@ import numpy as np
 import random
 from AppTools.StateMonitors import addstatemonitor
 from AppTools.Boxes import box
-from AppTools.Shapes import PolygonTexture, Disc, Block
+#from AppTools.Shapes import PolygonTexture, Disc, Block
+from BCPyOgreRenderer.OgreRenderer import HandStimulus, Disc, Block, Text
 import WavTools
 
 class FeedbackApp(object):

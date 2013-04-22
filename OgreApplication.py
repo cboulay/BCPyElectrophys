@@ -26,7 +26,7 @@ import SigTools
 from AppTools.Boxes import box
 from AppTools.Displays import fullscreen
 from AppTools.StateMonitors import addstatemonitor, addphasemonitor
-from AppTools.Shapes import Disc
+from BCPyOgreRenderer.OgreRenderer import HandStimulus, Disc, Block, Text
 from GatingExtension import GatingApp
 from ContinuousFeedbackExtension import FeedbackApp
 from MagstimExtension import MagstimApp
@@ -99,11 +99,10 @@ class BciApplication(BciGenericApplication):
     def Preflight(self, sigprops):
         #Setup screen
         print 'Preflight'
-        self.screen.setup(frameless_window=0, coordinate_mapping = 'pixels from lower left',
-                          plugins_path='.\BCPyOgreRenderer\plugins.cfg.nt', resource_path='.\BCPyOgreRenderer\resources.cfg')
+        self.screen.setup(frameless_window=0, coordinate_mapping = 'pixels from lower left')
         siz = float(self.params['WindowSize'])
         screenid = int(self.params['ScreenId'])  # ScreenId 0 is the first screen, 1 the second, -1 the last
-        fullscreen(scale=siz, id=screenid, frameless_window=(siz==1)) # only use a borderless window if the window is set to fill the whole screen
+        #fullscreen(scale=siz, id=screenid, frameless_window=(siz==1)) # only use a borderless window if the window is set to fill the whole screen
 
         self.nclasses = len(self.params['GoCueText'])#Must be defined in Preflight because it is used by extension preflight.
 

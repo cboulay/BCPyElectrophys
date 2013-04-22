@@ -8,4 +8,4 @@ Start executable SignalGenerator --local --FileFormat=Null
 Start executable SpectralSignalProcessing --local
 Start executable PythonApplication --local --PythonAppClassFile=..\..\BCPyElectrophys\OgreApplication.py --PythonAppWD=..\..\BCPyElectrophys
 Wait for Connected
-Load parameterfile "../../BCPyElectrophys/test.prm"
+Load parameterfile "../../BCPyElectrophys/test_ogre.prm"
