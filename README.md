@@ -96,9 +96,13 @@ These include [EERF](https://github.com/cboulay/EERF),
 You can either use git or download the tagged version.
 
 Git:
+
 Change to BCI2000's parent directory. `git checkout git://github.com/cboulay/BCPyElectrophys.git`
 
+If you are using the OgreRenderer, don't forget to `git submodule init` and `git submodule update`.
+
 Tag:
+
 Click on Tags near the top right of this page. Download the source code in an archive.
 Extract the contents of the archive (i.e., its root folder) into BCI2000's parent folder.
 You should have \parent\BCI2000 and \parent\BCPyElectrophys-vx.x
