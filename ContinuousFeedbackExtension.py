@@ -117,7 +117,8 @@ class FeedbackApp(object):
                     my_target = app.target_range[x]
                     targ_h = int((my_target[1] - my_target[0]) * scrsiz / 200.0)
                     targ_y = int(center[1] + (my_target[0] + my_target[1]) * scrsiz / 400.0)
-                    app.stimulus('target_'+str(x), z=2, stim= Block(position = [center[0], targ_y], size = [targtw * scrsiz, targ_h], color=(1, 0.1, 0.1, 0.5), on=False))
+                    targ_stim = Block(position = [center[0], targ_y], size = [targtw * scrsiz, targ_h], color=(1, 0.1, 0.1, 0.5), on=False)
+                    app.stimulus('target_'+str(x), z=2, stim=targ_stim)
 
                 #Our feedback will range from -10 to +10
                 app.m=app.scrh/20.0#Conversion factor from signal amplitude to pixels.
@@ -129,13 +130,14 @@ class FeedbackApp(object):
                 app.vfb_keys = []
                 for j in range(app.nclasses):
                     if app.vfb_type[j]==0: #Bar
-                        app.addbar(color=(0,1,0), pos=(app.scrw/2.0,app.b_offset), thickness=app.scrw/10, fac=app.m)
+                        app.addbar(color=(0,0.9,0), pos=(app.scrw/2.0,app.b_offset), thickness=app.scrw/10, fac=app.m)
                         app.vfb_keys.append('barrect_' + str(len(app.bars)))
                         app.stimuli['bartext_'+ str(len(app.bars))].position=(50,50)#off in the lower corner
-                        app.stimuli['bartext_'+ str(len(app.bars))].color=[0,0,0]#hide it
+                        #app.stimuli['bartext_'+ str(len(app.bars))].color=[0,0,0]#hide it
+                        app.stimuli['bartext_'+ str(len(app.bars))].on = False#hide it
 
                     elif app.vfb_type[j]==1: #Cursor
-                        app.stimulus('cursor_'+str(j), z=3, stim=Disc(radius=10, color=(1,1,1), on=False))
+                        app.stimulus('cursor_'+str(j), z=3, stim=Disc(radius=10, color=(0.9,0.9,0.9), on=False))
                         app.vfb_keys.append('cursor_'+str(j))
                         #Set cursor speed so that it takes entire feedback duration to go from bottom to top at amplitude 1 (= 1xvar; =10% ERD; =10%MVC)
                         app.curs_speed = scrsiz / fbblks #pixels per block
@@ -299,7 +301,7 @@ class FeedbackApp(object):
     @classmethod
     def process(cls,app,sig):
         if int(app.params['ContFeedbackEnable'])==1 and app.states['Feedback']:
-            t = app.states['LastTargetCode'] #Use LastTargetCode because it doesn't go to 0 between trials.
+            t = app.states['LastTargetCode'] #Use LastTargetCode because this does not become 0 between trials.
 
             if app.params['FakeFeedback'].val:
                 trial_i = app.states['CurrentTrial']-1 if app.states['CurrentTrial'] < app.fake_data.shape[0] else random.uniform(0,app.params['TrialsPerBlock'])
@@ -330,12 +332,14 @@ class FeedbackApp(object):
                     update_by = 0.0 if not app.in_phase('task') and app.params['BaselineConstant'] else x
                     app.bars[int(app.vfb_keys[t-1][-1])-1].set(update_by) #e.g. "barrect_1" take the "1"
                 elif app.vfb_type[t-1] == 1: #cursor
-                    new_pos = this_fb.position
-                    new_pos[1] = new_pos[1] + app.curs_speed * x #speed is pixels per block
-                    new_pos[1] = min(new_pos[1], app.scrh) #Never move the position off the top
-                    new_pos[1] = max(new_pos[1], 0) #Never move the position off the bottom
-                    this_fb.position = app.positions['origin'].A.ravel().tolist()\
-                        if not app.in_phase('task') and app.params['BaselineConstant'] else new_pos
+                    if not app.in_phase('task') and app.params['BaselineConstant']:
+                        this_fb.position = app.positions['origin'].A.ravel().tolist()
+                    else:
+                        new_pos = this_fb.position
+                        new_pos[1] = new_pos[1] + app.curs_speed * x #speed is pixels per block
+                        new_pos[1] = min(new_pos[1], app.scrh) #Never move the position off the top
+                        new_pos[1] = max(new_pos[1], 0) #Never move the position off the bottom
+                        this_fb.position = new_pos
                 elif app.vfb_type[t-1] == 2: #color-changing circle.
                     fake_y = this_fb.color[0] - this_fb.color[2]#convert old color to a position on -1 to +1 scale.
                     fake_y = fake_y + app.col_speed * x#increment the position
