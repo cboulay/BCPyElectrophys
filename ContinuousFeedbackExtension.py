@@ -2,8 +2,12 @@ import numpy as np
 import random
 from AppTools.StateMonitors import addstatemonitor
 from AppTools.Boxes import box
-#from AppTools.Shapes import PolygonTexture, Disc, Block
-from BCPyOgreRenderer.OgreRenderer import HandStimulus, Disc, Block, Text
+#TODO: Check if using ogre
+import sys
+if "ogre.renderer.OGRE" in sys.modules:
+    from BCPyOgreRenderer.OgreRenderer import HandStimulus, Disc, Block, Text
+else:
+    from AppTools.Shapes import PolygonTexture, Disc, Block
 import WavTools
 
 class FeedbackApp(object):
