@@ -46,6 +46,7 @@ class BciApplication(BciGenericApplication):
             "PythonApp:Design	list	GoCueText=		 	2 Imagery Rest % % % // Text for cues. Defines N targets",
             "PythonApp:Design	int		ClusterTargets=    	1     1     0   %  // Size of pseudorandomized target clusters or cycle(0)",
             "PythonApp:Design	matrix  TargetRange= {1 2} {Min Max} -100.0 -80.0 80.0 100.0 0 -100 100 //Row for each target, Cols for Min(-100), Max(+100)",
+            "PythonApp:Design  float    PreRunDuration=     5.0   5.0   0.0 100.0 // PreRunDelay before the task starts",
             "PythonApp:Design  float	IntertrialDur=	  	0.5   0.5   0.0 100.0 // Intertrial duration in seconds",
             "PythonApp:Design  float	BaselineDur=		4.0   4.0   0.0 100.0 // Baseline duration in seconds",
             "PythonApp:Design   float	GoCueDur=	  		1.0   1.0   0.0 100.0 // GoCue duration in seconds",
@@ -238,6 +239,7 @@ class BciApplication(BciGenericApplication):
     #############################################################
     def Phases(self):
         # define phase machine using calls to self.phase and self.design
+        self.phase(name='preRun', next='intertrial', duration=self.params['PreRunDuration'].val*1000.0)
         self.phase(name='intertrial', next='baseline', duration=self.params['IntertrialDur'].val*1000.0)
         self.phase(name='baseline', next='gocue', duration=self.params['BaselineDur'].val*1000.0)
         self.phase(name='gocue', next='task', duration=self.params['GoCueDur'].val*1000.0)
@@ -245,8 +247,9 @@ class BciApplication(BciGenericApplication):
         self.phase(name='response', next='stopcue',\
                 duration=None if int(self.params['ERPDatabaseEnable']) else self.params['ResponseDur'].val*1000.0)
         self.phase(name='stopcue', next='intertrial', duration=self.params['StopCueDur'].val*1000.0)
+        self.phase(name='postRun', duration=1000.0)
 
-        self.design(start='intertrial', new_trial='intertrial')
+        self.design(start='preRun', new_trial='intertrial', end='postRun')
 
     #############################################################
     def Transition(self, phase):
