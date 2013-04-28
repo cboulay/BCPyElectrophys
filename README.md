@@ -18,11 +18,10 @@ by BCPy2000, and since I use Python for other things
 ([see EERF](https://github.com/cboulay/EERF)), I prefer to use a full Python installation.
 
 ### Install Python
-BCPy2000 currently has some [dependencies](http://www.bci2000.org/phpbb/viewtopic.php?f=1&t=1330) that require Python <= 2.6.
 
-[Download Python 2.6](http://www.python.org/download/releases/2.6.6/).
-Run the installer.
-Add the Python directory (usually `C:\Python26`) to your [PATH environment variable](http://www.computerhope.com/issues/ch000549.htm).
+1. [Download Python 2.6 Windows x86 (not 64) MSI Installer](http://www.python.org/download/releases/2.6.6/).(BCPy2000 currently has some [dependencies](http://www.bci2000.org/phpbb/viewtopic.php?f=1&t=1330) that require Python <= 2.6.)
+2. Run the installer.
+3. Add the Python directory (usually `C:\Python26`) to your [PATH environment variable](http://www.computerhope.com/issues/ch000549.htm).
 
 ### Install BCPy2000 dependencies
 (If the version number is listed, then you must use that specific version)
@@ -31,7 +30,7 @@ Add the Python directory (usually `C:\Python26`) to your [PATH environment varia
 2. Download and install [pyreadline 1.5](http://pypi.python.org/packages/any/p/pyreadline/pyreadline-1.5-win32-setup.exe)
 3. Download and install [IPython 0.10.2](http://archive.ipython.org/release/0.10.2/ipython-0.10.2.win32-setup.exe)
 4. From [here](http://www.lfd.uci.edu/~gohlke/pythonlibs/) download and install the latest
-    pywin32, numpy, scipy, matplotlib, PIL, pyaudio, and pyopengl
+    pywin32, numpy (MKL version is OK), scipy, matplotlib, PIL, pyaudio, and pyopengl
     (be sure to get the files ending in win32-py2.6.exe)
 5. Download and install [pygame 1.9.1](http://www.pygame.org/download.shtml)
 6. Download and install [VisionEgg](http://www.lfd.uci.edu/~gohlke/pythonlibs/#visionegg)
@@ -106,9 +105,9 @@ Click on Tags near the top right of this page. Download the source code in an ar
 Extract the contents of the archive (i.e., its root folder) into BCI2000's parent folder.
 You should have `\parent\BCI2000` and `\parent\BCPyElectrophys-vx.x`
 
-If you are using the OgreRenderer, don't forget to `git submodule update --init`.
+If you are using the OgreRenderer, don't forget to `git submodule update --init` from within the BCPyElectrophys directory.
 
-Test it by changing to the BCPyElectrophys folder and running `test.bat`.
+Test by changing to the BCPyElectrophys folder and running `test.bat`.
 Nothing is enabled by default, but you should be able to see the debug information showing task progression.
 
 # Description

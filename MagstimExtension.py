@@ -15,6 +15,7 @@ class MagstimApp(object):
             "PythonApp:Magstim        int        MSEnable= 0 0 0 1 // Enable: 0 no, 1 yes (boolean)",
             "PythonApp:Magstim        string    MSSerialPort= COM4 % % % // Serial port for controlling Magstim",
             "PythonApp:Magstim        int        MSTriggerType= 0 0 0 2 // Trigger by: 0 SerialPort, 1 Contec1, 2 Contec2 (enumeration)",
+            "PythonApp:Magstim        float      MSDelay= 0.0 0.0 0.0 % // Time ms delay from criterion met to stim",
             "PythonApp:Magstim        int        MSReqStimReady= 0 0 0 1 // Require ready response to trigger: 0 no, 1 yes (boolean)",
             "PythonApp:Magstim        float      MSISIMin= 6 6 2 % // Minimum time s between stimuli",
             "PythonApp:Magstim        intlist    MSIntensityA= 1 50 0 0 100 // TS if single-pulse, CS if double-pulse",
@@ -41,13 +42,16 @@ class MagstimApp(object):
             from Magstim.MagstimInterface import Bistim
             serPort=app.params['MSSerialPort'].val
             trigType=int(app.params['MSTriggerType'])
-            if trigType==0: app.trigbox=None
-            else:
-                if hasattr(app,'trigbox') and app.trigbox: app.trigbox.set_TTL(channel=trigType, amplitude=5, width=2.5, offset=0.0)
-                else:
+            if trigType==0: #Use serial port trigger
+                app.trigbox=None
+                app.magstim=Bistim(port=serPort, stimDelay=app.params['MSDelay'].val)
+            else: #Use contec trigger
+                if not (hasattr(app,'trigbox') and app.trigbox): #Don't double up on the trigbox if RE-initializing
                     from Caio.TriggerBox import TTL
                     app.trigbox=TTL(channel=trigType)
-            app.magstim=Bistim(port=serPort, trigbox=app.trigbox)
+                app.trigbox.set_TTL(channel=trigType, amplitude=5, width=2.5, offset=app.params['MSDelay'].val)
+                app.magstim=Bistim(port=serPort, trigbox=app.trigbox)
+
             #app.intensity_detail_name = 'dat_TMS_powerA'
             app.magstim.remocon = True
 
