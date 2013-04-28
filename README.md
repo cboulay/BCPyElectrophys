@@ -97,9 +97,9 @@ You can either use git or download the tagged version.
 
 Git:
 
-Change to BCI2000's parent directory. `git checkout git://github.com/cboulay/BCPyElectrophys.git`
+Change to BCI2000's parent directory. `git clone git://github.com/cboulay/BCPyElectrophys.git`
 
-If you are using the OgreRenderer, don't forget to `git submodule init` and `git submodule update`.
+If you are using the OgreRenderer, don't forget to `git submodule update --init`.
 
 Tag:
 
