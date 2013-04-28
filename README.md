@@ -38,6 +38,12 @@ Add the Python directory (usually `C:\Python26`) to your [PATH environment varia
 
 ### Install BCI2000 and BCPy2000
 
+You can download pre-compiled binaries (Easy Way) or download the source and compile it yourself (Hard Way).
+Which way you choose is up to you. For both methods, you will need to start by doing the following:
+
+1. Download and install [TortoiseSVN](http://tortoisesvn.net)
+2. Create an [account](http://www.bci2000.org/wiki/index.php/Creating_a_User_Account) on bci2000.org
+
 #### The Easy Way
 
 1. BCI2000 itself should be installed from the [pre-compiled binaries](http://www.bci2000.org/wiki/index.php/BCI2000_Binaries).
@@ -60,16 +66,14 @@ Follow the instructions
 [here](http://www.bci2000.org/wiki/index.php/Programming_Reference:BCI2000_Source_Code).
 In brief (on Windows):
 
-1. Download and install [TortoiseSVN](http://tortoisesvn.net)
-2. Download and install [MS Visual Studio 2008 Express](http://www.microsoft.com/en-us/download/details.aspx?id=6506)(vcsetup.exe)
-3. Download and install [CMake](http://www.cmake.org/cmake/resources/software.html)
-4. Create an [account](http://www.bci2000.org/wiki/index.php/Creating_a_User_Account) on bci2000.org
-5. Download the source code (`SVN checkout http://www.bci2000.org/svn/trunk BCI2000 --username <username> --password <password>`). This is around 160 MBytes. We will call the location of the created directory `$BCI2000PATH`.
-6. Change to the `$BCI2000PATH/build/` directory and run `Make VS2008 Project Files.bat`
-7. During the make process, be sure to make contributions and BCPy2000
-8. Open the BCI2000.sln file in VS2008
-9. At the top, change the Debug to Release*, from the Build menu select "Build Solution". Wait ~10 minutes.
-10. Run `$BCI2000PATH/src/contrib/BCPy2000/InstallFramework.bat`
+1. Download and install [MS Visual Studio 2008 Express](http://www.microsoft.com/en-us/download/details.aspx?id=6506)(vcsetup.exe)
+2. Download and install [CMake](http://www.cmake.org/cmake/resources/software.html)
+3. Download the source code (`SVN checkout http://www.bci2000.org/svn/trunk BCI2000 --username <username> --password <password>`). This is around 160 MBytes. We will call the location of the created directory `$BCI2000PATH`.
+4. Change to the `$BCI2000PATH/build/` directory and run `Make VS2008 Project Files.bat`
+5. During the make process, be sure to make contributions and BCPy2000
+6. Open the BCI2000.sln file in VS2008
+7. At the top, change the Debug to Release*, from the Build menu select "Build Solution". Wait ~10 minutes.
+8. Run `$BCI2000PATH/src/contrib/BCPy2000/InstallFramework.bat`
 
 * The BCPy2000 modules and the version of Python you use must both compiled for the same architecture,
 i.e. 32-bit or 64-bit. Most neurophysiology devices only have 32-bit drivers and thus will only
@@ -80,8 +84,7 @@ Thus, compile all BCI2000 modules for 32-bit.
 ### Stop and Test
 
 At this point you should test that BCPy2000 is working.
-Run `$BCI2000PATH/src/contrib/BCPy2000/Merge.bat`
-Then run `$BCI2000PATH/batch/PythonDemo1_Triangle.bat`
+Run `$BCI2000PATH/batch/PythonDemo1_Triangle.bat`
 
 ### Installing BCPyElectrophys dependencies
 The extensions in this repo have additional dependencies depending on which extensions you intend to use.
@@ -101,7 +104,7 @@ Tag:
 
 Click on Tags near the top right of this page. Download the source code in an archive.
 Extract the contents of the archive (i.e., its root folder) into BCI2000's parent folder.
-You should have \parent\BCI2000 and \parent\BCPyElectrophys-vx.x
+You should have `\parent\BCI2000` and `\parent\BCPyElectrophys-vx.x`
 
 If you are using the OgreRenderer, don't forget to `git submodule update --init`.
 
