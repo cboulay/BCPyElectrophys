@@ -30,10 +30,11 @@ by BCPy2000, and since I use Python for other things
 2. Download and install [pyreadline 1.5](http://pypi.python.org/packages/any/p/pyreadline/pyreadline-1.5-win32-setup.exe)
 3. Download and install [IPython 0.10.2](http://archive.ipython.org/release/0.10.2/ipython-0.10.2.win32-setup.exe)
 4. From [here](http://www.lfd.uci.edu/~gohlke/pythonlibs/) download and install the latest
-    pywin32, numpy (MKL version is OK), scipy, matplotlib, PIL, pyaudio, and pyopengl
+    pywin32, numpy (MKL version is OK), scipy, matplotlib, pyaudio, and pyopengl
     (be sure to get the files ending in win32-py2.6.exe)
-5. Download and install [pygame 1.9.1](http://www.pygame.org/download.shtml)
-6. Download and install [VisionEgg](http://www.lfd.uci.edu/~gohlke/pythonlibs/#visionegg)
+5. Download and install [PIL](http://www.pythonware.com/products/pil/) for Python 2.6.
+6. Download and install [pygame 1.9.1](http://www.pygame.org/download.shtml)
+7. Download and install [VisionEgg](http://www.lfd.uci.edu/~gohlke/pythonlibs/#visionegg)
 
 ### Install BCI2000 and BCPy2000
 
@@ -45,15 +46,17 @@ Which way you choose is up to you. For both methods, you will need to start by d
 
 #### The Easy Way
 
-1. BCI2000 itself should be installed from the [pre-compiled binaries](http://www.bci2000.org/wiki/index.php/BCI2000_Binaries).
+1. BCI2000 itself should be installed from the [pre-compiled binaries](http://www.bci2000.org/wiki/index.php/BCI2000_Binaries#Contributed_Code).
+Get `BCI2000Contrib.exe`.
 For the remainder of this section let us consider the directory where BCI2000 was extracted as $BCI2000PATH.
 2. Unfortunately, BCPy2000 is not included in the BCI2000 distributions. Download the BCPy2000 foundation files (i.e. the BCI2000 modules that will execute the Python code) from the
-[BCPy2000-demo](http://bci2000.org/downloads/BCPy2000/Download.html) (see Option B).
+[BCPy2000-demo](http://bci2000.org/downloads/BCPy2000/Download.html) (see Option B BCPy2000-demo-X.zip).
 3. From the extracted archive's `demo` directory, copy the `batch`, `parms`, and `python` directories to $BCI2000PATH.
 4. From the extracted archive's `demo\prog` directory, copy `PythonApplication.exe`, `PythonSignalProcessing.exe`, and `PythonSource.exe` into `$BCI2000PATH\prog`.
-5. The prepackaged BCPy2000 downloads have rather old framework files so we will have to install those from the source code repository.
+5. The prepackaged BCPy2000 downloads have rather old framework files but we need to get the latest version.
+To do that, we can download them from the source code repository.
 There are several ways to do this, but the easiest way to maintain your BCPy2000 framework files is to use SVN to manage the files within
-the Python directory (usually `C:\Python26\Lib\site-packages`). Change to that directory, and ask Tortoise-SVN to
+the Python directory (usually `C:\Python26\Lib\site-packages`). Change to that directory, right-click in empty space and ask Tortoise-SVN to
 checkout `http://www.bci2000.org/svn/trunk/src/contrib/BCPy2000/framework/BCPy2000`.
 
 #### The Hard Way
@@ -84,6 +87,8 @@ Thus, compile all BCI2000 modules for 32-bit.
 
 At this point you should test that BCPy2000 is working.
 Run `$BCI2000PATH/batch/PythonDemo1_Triangle.bat`
+You may have to edit this batch file and comment out the call to portable.bat
+by prepending that line with `::`.
 
 ### Installing BCPyElectrophys dependencies
 BCPyElectrophys has no dependencies in addition to the BCPy2000 dependencies unless you plan to use
@@ -139,7 +144,7 @@ This extension is for interacting with a Magstim device. It can trigger single-p
 or bistim TMS when the task transitions into the 'response' phase. This extension
 makes use of my [magstim-python](https://github.com/cboulay/magstim_python) package.
 That package is already included as a submodule of BCPyElectrophys. To download the
-submodule, in a git-bash prompt enter: `git submodule update --init`.
+submodule, in a git-bash prompt, change to the BCPyElectrophys directory and enter: `git submodule update --init`.
 
 Note that the Magstim stimulator also requires [pyserial](http://www.lfd.uci.edu/~gohlke/pythonlibs/#pyserial).
 
@@ -153,7 +158,7 @@ This extension is for activating nerve stimulation using a Digitimer device. The
 timing and amplitude is determined by a Contec USB D/A device, requiring my
 [caio-python](https://github.com/cboulay/caio_python) package.
 That package is already included as a submodule of BCPyElectrophys. To download the
-submodule, in a git-bash prompt enter: `git submodule update --init`.
+submodule, in a git-bash prompt, change to the BCPyElectrophys directory and enter: `git submodule update --init`.
 
 ## ContinuousFeedbackExtension
 
@@ -167,7 +172,7 @@ interested in this package then please contact me directly.
 If you want to use the Ogre3D engine for visual feedback then you'll need my
 [BCPyOgreRenderer](https://github.com/cboulay/BCPyOgreRenderer) package.
 That package is already included as a submodule of BCPyElectrophys. To download the
-submodule, in a git-bash prompt enter: `git submodule update --init`.
+submodule, in a git-bash prompt, change to the BCPyElectrophys directory and enter: `git submodule update --init`.
 
 Note that BCPyOgreRenderer also requires python-ogre.
 See the [BCPyOgreRenderer page](https://github.com/cboulay/BCPyOgreRenderer) for installation instructions.
