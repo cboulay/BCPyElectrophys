@@ -32,12 +32,12 @@ class DigitimerApp(object):
         if int(app.params['DigitimerEnable'])==1:
             trigType = int(app.params['DigiTriggerType'])
             if not hasattr(app,'trigbox') or not app.trigbox:
-                from Caio.TriggerBox import TTL
+                from caio_python.Caio.TriggerBox import TTL
                 app.trigbox = TTL()
             #Digitimer requires both channels.
             app.trigbox.set_TTL(channel = trigType+1, amplitude=1.0, width=1.0, offset=app.params['DigiDelay'].val)
             app.trigbox.set_TTL(channel = 2-trigType, amplitude=5.0, width=2.5, offset=app.params['DigiDelay'].val)
-            from Caio.VirtualStimulatorInterface import Virtual
+            from caio_python.Caio.VirtualStimulatorInterface import Virtual
             app.digistim = Virtual(trigbox=app.trigbox)
             app.digistim.intensity = app.params['DigiIntensity'].val
 

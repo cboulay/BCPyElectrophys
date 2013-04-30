@@ -1,3 +1,9 @@
 [submodule "BCPyOgreRenderer"]
 	path = BCPyOgreRenderer
-	url = git://github.com/cboulay/BCPyOgreRenderer.git
+	url = https://github.com/cboulay/BCPyOgreRenderer.git
+[submodule "magstim_python"]
+	path = magstim_python
+	url = https://github.com/cboulay/magstim_python.git
+[submodule "caio_python"]
+	path = caio_python
+	url = https://github.com/cboulay/caio_python.git

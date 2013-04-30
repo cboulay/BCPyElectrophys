@@ -39,7 +39,7 @@ class MagstimApp(object):
     @classmethod
     def initialize(cls, app, indim, outdim):
         if int(app.params['MSEnable'])==1:
-            from Magstim.MagstimInterface import Bistim
+            from magstim_python.Magstim.MagstimInterface import Bistim
             serPort=app.params['MSSerialPort'].val
             trigType=int(app.params['MSTriggerType'])
             if trigType==0: #Use serial port trigger
@@ -47,7 +47,7 @@ class MagstimApp(object):
                 app.magstim=Bistim(port=serPort, stimDelay=app.params['MSDelay'].val)
             else: #Use contec trigger
                 if not (hasattr(app,'trigbox') and app.trigbox): #Don't double up on the trigbox if RE-initializing
-                    from Caio.TriggerBox import TTL
+                    from caio_python.Caio.TriggerBox import TTL
                     app.trigbox=TTL(channel=trigType)
                 app.trigbox.set_TTL(channel=trigType, amplitude=5, width=2.5, offset=app.params['MSDelay'].val)
                 app.magstim=Bistim(port=serPort, trigbox=app.trigbox)

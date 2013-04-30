@@ -86,17 +86,18 @@ At this point you should test that BCPy2000 is working.
 Run `$BCI2000PATH/batch/PythonDemo1_Triangle.bat`
 
 ### Installing BCPyElectrophys dependencies
-The extensions in this repo have additional dependencies depending on which extensions you intend to use.
-These include [EERF](https://github.com/cboulay/EERF),
- my [caio package](https://github.com/cboulay/caio-python),
- my [magstim package](https://github.com/cboulay/magstim-python),
- and these may or may not have their own dependencies. See their respective pages for installation instructions.
+BCPyElectrophys has no dependencies in addition to the BCPy2000 dependencies unless you plan to use
+the Ogre3D renderer (as part of ContinuousFeedbackExtension),
+a Magstim stimulator (as part of MagstimExtension),
+or ERPExtension (for online analysis and visualization of ERPs).
+See below for an explanation of each extension and their requirements.
 
 ### Downloading and installing BCPyElectrophys
 You can either use git or download the tagged version.
 
 Git:
 
+You need a git client. Either [Git](http://git-scm.com/downloads)(command-line) or [SourceTree](http://sourcetreeapp.com/)(GUI).
 Change to BCI2000's parent directory. `git clone git://github.com/cboulay/BCPyElectrophys.git`
 
 Tag:
@@ -105,7 +106,7 @@ Click on Tags near the top right of this page. Download the source code in an ar
 Extract the contents of the archive (i.e., its root folder) into BCI2000's parent folder.
 You should have `\parent\BCI2000` and `\parent\BCPyElectrophys-vx.x`
 
-If you are using the OgreRenderer, don't forget to `git submodule update --init` from within the BCPyElectrophys directory.
+### Stop and Test (again)
 
 Test by changing to the BCPyElectrophys folder and running `test.bat`.
 Nothing is enabled by default, but you should be able to see the debug information showing task progression.
@@ -128,17 +129,25 @@ some duration + some other random duration.
 
 ## MagstimExtension
 
-This extension is for interacting with a magstim device. It can trigger single-pulse
+This extension is for interacting with a Magstim device. It can trigger single-pulse
 or bistim TMS when the task transitions into the 'response' phase. This extension
-requires my [magstim-python](https://github.com/cboulay/magstim-python) package. It is also
-possible to trigger the Magstim device with a TTL over BNC and for that I use a
-Contec USB D/A device, requiring my [caio-python](https://github.com/cboulay/caio-python) package.
+makes use of my [magstim-python](https://github.com/cboulay/magstim_python) package.
+That package is already included as a submodule of BCPyElectrophys. To download the
+submodule, in a git-bash prompt enter: `git submodule update --init`.
+
+Note that the Magstim stimulator also requires [pyserial](http://www.lfd.uci.edu/~gohlke/pythonlibs/#pyserial).
+
+It is also possible to trigger the Magstim device with a TTL over BNC and for that I use a
+Contec USB D/A device, requiring my [caio-python](https://github.com/cboulay/caio_python) package.
+This package is also included as a submodule of BCPyElectrophys.
 
 ## DigitimerExtension
 
 This extension is for activating nerve stimulation using a Digitimer device. The stimulus
 timing and amplitude is determined by a Contec USB D/A device, requiring my
-[caio-python](https://github.com/cboulay/caio-python) package.
+[caio-python](https://github.com/cboulay/caio_python) package.
+That package is already included as a submodule of BCPyElectrophys. To download the
+submodule, in a git-bash prompt enter: `git submodule update --init`.
 
 ## ContinuousFeedbackExtension
 
@@ -149,8 +158,17 @@ and NMES devices require another Python package that I have. I have not publishe
 package because I am uncertain if it reveals any intellectual property. If you are
 interested in this package then please contact me directly.
 
+If you want to use the Ogre3D engine for visual feedback then you'll need my
+[BCPyOgreRenderer](https://github.com/cboulay/BCPyOgreRenderer) package.
+That package is already included as a submodule of BCPyElectrophys. To download the
+submodule, in a git-bash prompt enter: `git submodule update --init`.
+
+Note that BCPyOgreRenderer also requires python-ogre. See [BCPyOgreRenderer](https://github.com/cboulay/BCPyOgreRenderer)
+page for installation instructions.
+
 ## ERPExtension
 
 This extension enables storing of ERPs into a custom database, and then
 possibly providing feedback about the amplitude of an ERP feature. This
-extension requires my [EERF python](https://github.com/cboulay/EERF) repo.
+extension requires my [EERF python](https://github.com/cboulay/EERF) package.
+See that page for installation instructions.
