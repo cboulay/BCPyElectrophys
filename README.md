@@ -104,7 +104,8 @@ Tag:
 
 Click on Tags near the top right of this page. Download the source code in an archive.
 Extract the contents of the archive (i.e., its root folder) into BCI2000's parent folder.
-You should have `\parent\BCI2000` and `\parent\BCPyElectrophys-vx.x`
+Rename this folder from "BCPyElectrophys-<tagname>" to "BCPyElectrophys".
+You should have `\parent\BCI2000` and `\parent\BCPyElectrophys`
 
 ### Stop and Test (again)
 
@@ -115,15 +116,20 @@ Nothing is enabled by default, but you should be able to see the debug informati
 
 ## TemplateApplication
 
-This BCPy2000 application does not do much except define the phases of each trial
-and call on the extensions.
-The phases are: intertrial, baseline, gocue, task, response, stopcue
-The duration of the phases can either be set by parameters
-or they might be determined by events occuring in the extensions.
+`TemplateApplication.py` is a BCPy2000 [developer file](http://bci2000.org/downloads/BCPy2000/Developer_Files.html).
+This file describes a BciApplication class. The application class has several [hooks](http://bci2000.org/downloads/BCPy2000/Hook.html)
+that BCI2000/BCPy2000 will call automatically at the appropriate time. You can get more detailed information
+about each of these hooks [here](http://bci2000.org/downloads/BCPy2000/BciGenericApplication.html).
+
+`TemplateApplication.py` does not do much except define the phases of each trial
+and call on the application extensions.
+I have defined the phases as "intertrial", "baseline", "gocue", "task", "response", and "stopcue".
+Each trial cycles through these phases. The durations of each phase might be defined by parameters
+or they might be determined by an extension.
 
 ## GatingExtension
 
-This extension blocks the trial from progressing past the task phase
+This extension blocks the trial from progressing past the "task" phase
 unless a signal feature that it is monitoring remains in some range for
 some duration + some other random duration.
 
@@ -152,7 +158,7 @@ submodule, in a git-bash prompt enter: `git submodule update --init`.
 ## ContinuousFeedbackExtension
 
 This extension enables continuous feedback of some signal. Feedback may be auditory,
-visual (a bar, a cursor, the color of a circle), passive movement operated by a custom device we have,
+visual (e.g., a bar, a cursor, the color of a circle), passive movement operated by a custom device we have,
 or neuromuscular stimulation controlled by a custom device we have. Both the passive movement
 and NMES devices require another Python package that I have. I have not published this
 package because I am uncertain if it reveals any intellectual property. If you are
@@ -163,8 +169,8 @@ If you want to use the Ogre3D engine for visual feedback then you'll need my
 That package is already included as a submodule of BCPyElectrophys. To download the
 submodule, in a git-bash prompt enter: `git submodule update --init`.
 
-Note that BCPyOgreRenderer also requires python-ogre. See [BCPyOgreRenderer](https://github.com/cboulay/BCPyOgreRenderer)
-page for installation instructions.
+Note that BCPyOgreRenderer also requires python-ogre.
+See the [BCPyOgreRenderer page](https://github.com/cboulay/BCPyOgreRenderer) for installation instructions.
 
 ## ERPExtension
 
