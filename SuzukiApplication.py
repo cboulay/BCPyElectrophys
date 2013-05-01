@@ -21,17 +21,13 @@ import numpy as np
 from random import randint, uniform, random, shuffle
 from math import ceil
 import time
-import VisionEgg
+import BCPyOgreRenderer.OgreRenderer as OgreRenderer
 import SigTools
 from AppTools.Boxes import box
 from AppTools.Displays import fullscreen
 from AppTools.StateMonitors import addstatemonitor, addphasemonitor
 from AppTools.Shapes import Disc
 from GatingExtension import GatingApp
-from ContinuousFeedbackExtension import FeedbackApp
-from MagstimExtension import MagstimApp
-from DigitimerExtension import DigitimerApp
-from ERPExtension import ERPApp
 
 class BciApplication(BciGenericApplication):
 
@@ -57,7 +53,6 @@ class BciApplication(BciGenericApplication):
             "PythonApp:Display  int		ScreenId=		   -1	-1	 %   %  // on which screen should the stimulus window be opened - use -1 for last",
             "PythonApp:Display  float	WindowSize=		 	0.8   1.0   0.0 1.0 // size of the stimulus window, proportional to the screen",
             ]
-
         states = [
             #===================================================================
             # "Intertrial 1 0 0 0",
@@ -72,28 +67,8 @@ class BciApplication(BciGenericApplication):
             #"TrialPhase 4 0 0 0",#TrialPhase unnecessary. Use built-in PresentationPhase
             #===================================================================
         ]
-
-        #=======================================================================
-        # Since we cannot evaluate the parameter value before Construct is run,
-        # we must assume the user may wish to include all extensions, thus we
-        # extend params and states here for all extensions. You may comment out
-        # the lines corresponding to the extensions you know you will not use.
-        # You should also comment out their imports at the top.
-        # Then save this as a new Application.py file.
-        #=======================================================================
-
         params.extend(GatingApp.params)
-        params.extend(MagstimApp.params)
-        params.extend(DigitimerApp.params)
-        params.extend(ERPApp.params)
-        params.extend(FeedbackApp.params)
-
         states.extend(GatingApp.states)
-        states.extend(MagstimApp.states)
-        states.extend(DigitimerApp.states)
-        states.extend(ERPApp.states)
-        states.extend(FeedbackApp.states)
-
         return params,states
 
     #############################################################
@@ -119,10 +94,7 @@ class BciApplication(BciGenericApplication):
             self.target_range=np.asarray(targrange,dtype='float64')
 
         if 'GatingEnable' in self.params:	GatingApp.preflight(self, sigprops)
-        if 'MSEnable' in self.params:	MagstimApp.preflight(self, sigprops)
-        if 'DigitimerEnable' in self.params:	DigitimerApp.preflight(self, sigprops)
-        if 'ERPDatabaseEnable' in self.params:	ERPApp.preflight(self, sigprops)
-        if 'ContFeedbackEnable' in self.params:	FeedbackApp.preflight(self, sigprops)
+
 
     #############################################################
     def Initialize(self, indim, outdim):
@@ -154,22 +126,6 @@ class BciApplication(BciGenericApplication):
         self.screen.color = (0,0,0) #let's have a black background
         self.scrw,self.scrh = self.screen.size #Get the screen dimensions.
 
-        #===================================================================
-        # Create a box object as the coordinate frame for the screen.
-        # Manipulate its properties to get positional information for stimuli.
-        #===================================================================
-        scrsiz = min(self.scrw,self.scrh)
-        siz = (scrsiz, scrsiz)
-        b = box(size=siz, position=(self.scrw/2.0,self.scrh/2.0), sticky=True)
-        center = b.map((0.5,0.5), 'position')
-        self.positions = {'origin': np.matrix(center)} #Save the origin for later.
-
-        #=======================================================================
-        # Register the basic stimuli.
-        #=======================================================================
-        self.stimulus('cue', z=5, stim=VisualStimuli.Text(text='?', position=center, anchor='center', color=(1,1,1), font_size=50, on=False))
-        self.stimulus('fixation', z=4.2, stim=Disc(position=center, radius=5, color=(1,1,1), on=False))
-
         #=======================================================================
         # Make a few variables easier to access.
         #=======================================================================
@@ -178,10 +134,20 @@ class BciApplication(BciGenericApplication):
         self.block_dur = 1000*self.spb/self.eegfs#duration (ms) of a sample block
 
         #=======================================================================
+        # Create the hand
+        #=======================================================================
+        HandStimulus = OgreRenderer.HandStimulus
+        self.stimulus('hand', HandStimulus, position=(400,300))
+        self.hand = self.stimuli['hand'].obj
+        #We want the hand to go from 0 to open in the time it takes to pass through the response phase.
+        resp_dur = self.params['ResponseDur'].val
+        self.hand_speed = 100./(resp_dur*self.block_dur)
+
+
+        #=======================================================================
         # State monitors for debugging.
         #=======================================================================
-        if int(self.params['ShowSignalTime']):
-            # turn on state monitors iff the packet clock is also turned on
+        if int(self.params['ShowSignalTime']):# turn on state monitors if the packet clock is also turned on
             addstatemonitor(self, 'Running', showtime=True)
             addstatemonitor(self, 'CurrentBlock')
             addstatemonitor(self, 'CurrentTrial')
@@ -203,38 +169,22 @@ class BciApplication(BciGenericApplication):
             m.func = lambda x: '% 6.1fHz' % x.estimated.get('FramesPerSecond',{}).get('running', 0)
             m.pargs = (self,)
 
-        if 'MSEnable' in self.params:	MagstimApp.initialize(self, indim, outdim)
-        if 'DigitimerEnable' in self.params:	DigitimerApp.initialize(self, indim, outdim)
         if 'GatingEnable' in self.params:	GatingApp.initialize(self, indim, outdim)
-        if 'ERPDatabaseEnable' in self.params:	ERPApp.initialize(self, indim, outdim)
-        if 'ContFeedbackEnable' in self.params:	FeedbackApp.initialize(self, indim, outdim)
 
     #############################################################
     def Halt(self):
-        if 'MSEnable' in self.params:	MagstimApp.halt(self)
-        if 'DigitimerEnable' in self.params:	DigitimerApp.halt(self)
         if 'GatingEnable' in self.params:	GatingApp.halt(self)
-        if 'ERPDatabaseEnable' in self.params:	ERPApp.halt(self)
-        if 'ContFeedbackEnable' in self.params:	FeedbackApp.halt(self)
 
     #############################################################
     def StartRun(self):
         #if int(self.params['ShowFixation']):
         self.states['LastTargetCode'] = self.target_codes[0]
         self.stimuli['fixation'].on = True
-        if 'MSEnable' in self.params:	MagstimApp.startrun(self)
-        if 'DigitimerEnable' in self.params:	DigitimerApp.startrun(self)
         if 'GatingEnable' in self.params:	GatingApp.startrun(self)
-        if 'ERPDatabaseEnable' in self.params:	ERPApp.startrun(self)
-        if 'ContFeedbackEnable' in self.params:	FeedbackApp.startrun(self)
 
     #############################################################
     def StopRun(self):
-        if 'MSEnable' in self.params:	MagstimApp.stoprun(self)
-        if 'DigitimerEnable' in self.params:	DigitimerApp.stoprun(self)
         if 'GatingEnable' in self.params:	GatingApp.stoprun(self)
-        if 'ERPDatabaseEnable' in self.params:	ERPApp.stoprun(self)
-        if 'ContFeedbackEnable' in self.params:	FeedbackApp.stoprun(self)
 
     #############################################################
     def Phases(self):
@@ -294,22 +244,14 @@ class BciApplication(BciGenericApplication):
 
         self.stimuli['cue'].on = (phase in ['gocue', 'stopcue'])
 
-        if 'MSEnable' in self.params:	MagstimApp.transition(self, phase)
-        if 'DigitimerEnable' in self.params:	DigitimerApp.transition(self, phase)
         if 'GatingEnable' in self.params:	GatingApp.transition(self, phase)
-        if 'ERPDatabaseEnable' in self.params:	ERPApp.transition(self, phase)
-        if 'ContFeedbackEnable' in self.params:	FeedbackApp.transition(self, phase)
 
     #############################################################
     def Process(self, sig):
         #Process is called on every packet
         #Phase transitions occur independently of packets
         #Therefore it is not desirable to use phases for application logic in Process
-        if 'MSEnable' in self.params:	MagstimApp.process(self, sig)
-        if 'DigitimerEnable' in self.params:	DigitimerApp.process(self, sig)
         if 'GatingEnable' in self.params:	GatingApp.process(self, sig)
-        if 'ERPDatabaseEnable' in self.params:	ERPApp.process(self, sig)
-        if 'ContFeedbackEnable' in self.params:	FeedbackApp.process(self, sig)
 
         #If we are in Task, and we are using GatingApp or MagstimApp or DigitimerApp
         if self.in_phase('task', min_packets=self.states['TaskNBlocks']):
@@ -330,11 +272,7 @@ class BciApplication(BciGenericApplication):
 
     #############################################################
     def Event(self, phase, event):
-        if 'MSEnable' in self.params:	MagstimApp.event(self, phase, event)
-        if 'DigitimerEnable' in self.params:	DigitimerApp.event(self, phase, event)
         if 'GatingEnable' in self.params:	GatingApp.event(self, phase, event)
-        if 'ERPDatabaseEnable' in self.params:	ERPApp.event(self, phase, event)
-        if 'ContFeedbackEnable' in self.params:	FeedbackApp.event(self, phase, event)
 
 #################################################################
 #################################################################
