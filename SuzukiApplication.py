@@ -139,10 +139,11 @@ class BciApplication(BciGenericApplication):
         HandStimulus = OgreRenderer.HandStimulus
         self.stimulus('hand', HandStimulus, position=(400,300))
         self.hand = self.stimuli['hand'].obj
+		self.hand.on = True
         #We want the hand to go from 0 to open in the time it takes to pass through the response phase.
         resp_dur = self.params['ResponseDur'].val
-        self.hand_speed = 100./(resp_dur*self.block_dur)
-
+        self.hand_speed = 100./(resp_dur*self.block_dur) #100 positions in the response period
+		self.hand_switch = False
 
         #=======================================================================
         # State monitors for debugging.
@@ -215,7 +216,7 @@ class BciApplication(BciGenericApplication):
         #=======================================================================
 
         if phase == 'intertrial':
-            pass
+            self.hand_switch = False
 
         elif phase == 'baseline':
             pass
@@ -236,7 +237,7 @@ class BciApplication(BciGenericApplication):
                 self.states['TaskNBlocks'] = task_length * self.eegfs / self.spb
 
         elif phase == 'response':
-            pass
+            self.hand_switch = True
 
         elif phase == 'stopcue':
             self.stimuli['cue'].text = "Relax"
@@ -252,18 +253,16 @@ class BciApplication(BciGenericApplication):
         #Phase transitions occur independently of packets
         #Therefore it is not desirable to use phases for application logic in Process
         if 'GatingEnable' in self.params:	GatingApp.process(self, sig)
-
         #If we are in Task, and we are using GatingApp or MagstimApp or DigitimerApp
         if self.in_phase('task', min_packets=self.states['TaskNBlocks']):
             criteria_met = not 'GatingEnable' in self.params or not int(self.params['GatingEnable']) or self.states['GatingOK']
-            magstim_ready = not 'MSEnable' in self.params or not int(self.params['MSEnable']) or self.states['MagstimReady']
-            digitimer_ready = not 'DigitimerEnable' in self.params or not int(self.params['DigitimerEnable']) or self.states['DigitimerReady']
-            if criteria_met and magstim_ready and digitimer_ready:
+            if criteria_met:
                 self.change_phase('response')
+				
+		if self.hand_switch:
+			self.hand.setPose(ceil(self.hand.getPose() + self.hand_speed))
 
-        #If we are in Response and we are using ERPApp and the ERP has been collected
-        if self.in_phase('response') and int(self.params['ERPDatabaseEnable']) and self.states['ERPCollected']:
-            self.change_phase('stopcue')
+        
 
     #############################################################
     def Frame(self, phase):
