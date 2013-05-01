@@ -48,7 +48,7 @@ class BciApplication(BciGenericApplication):
             "PythonApp:Design   float	GoCueDur=	  		1.0   1.0   0.0 100.0 // GoCue duration in seconds",
             "PythonApp:Design  float	TaskDur=			6.0   6.0   0.0 100.0 // Min task duration in seconds (unless Gating)",
             "PythonApp:Design  float	TaskRand=			3.0   3.0   0.0 100.0 // Additional randomization in seconds (unless Gating)",
-			"PythonApp:Design  float	TaskMax=			5.0   5.0   0.0 100.0 // Timeout task (s) if Gating fails",
+            "PythonApp:Design  float	TaskMax=			5.0   5.0   0.0 100.0 // Timeout task (s) if Gating fails",
             "PythonApp:Design   float	ResponseDur=	  	0.2   0.2   0.0 100.0 // Response duration in seconds (unless ERP)",
             "PythonApp:Design   float	StopCueDur=	  		1.0   1.0   0.0 100.0 // StopCue duration in seconds",
             "PythonApp:Display  int		ScreenId=		   -1	-1	 %   %  // on which screen should the stimulus window be opened - use -1 for last",
@@ -133,9 +133,8 @@ class BciApplication(BciGenericApplication):
         self.eegfs = self.nominal['SamplesPerSecond'] #Sampling rate
         self.spb = self.nominal['SamplesPerPacket'] #Samples per block/packet
         self.block_dur = 1000*self.spb/self.eegfs#duration (ms) of a sample block
-		self.task_timeout_blocks = self.params['TaskMax'].val*1000/self.block_dur
-		
-		#===================================================================
+        self.task_timeout_blocks = self.params['TaskMax'].val*1000/self.block_dur
+        #===================================================================
         # Create a box object as the coordinate frame for the screen.
         # Manipulate its properties to get positional information for stimuli.
         #===================================================================
@@ -144,8 +143,8 @@ class BciApplication(BciGenericApplication):
         b = box(size=siz, position=(self.scrw/2.0,self.scrh/2.0), sticky=True)
         center = b.map((0.5,0.5), 'position')
         self.positions = {'origin': np.matrix(center)} #Save the origin for later.
-		
-		#=======================================================================
+        
+        #=======================================================================
         # Register the basic stimuli.
         #=======================================================================
         self.stimulus('cue', z=5, stim=VisualStimuli.Text(text='?', position=center, anchor='center', color=(1,1,1), font_size=50, on=False))
@@ -156,11 +155,11 @@ class BciApplication(BciGenericApplication):
         HandStimulus = OgreRenderer.HandStimulus
         self.stimulus('hand', HandStimulus, position=(400,300))
         self.hand = self.stimuli['hand'].obj
-		self.hand.on = True
+        self.hand.on = True
         #We want the hand to go from 0 to open in the time it takes to pass through the response phase.
         resp_dur = self.params['ResponseDur'].val
         self.hand_speed = 100./(resp_dur*1000/self.block_dur) #100 positions in the response period
-		self.hand_switch = False
+        self.hand_switch = False
 
         #=======================================================================
         # State monitors for debugging.
@@ -212,7 +211,7 @@ class BciApplication(BciGenericApplication):
         self.phase(name='baseline', next='gocue', duration=self.params['BaselineDur'].val*1000.0)
         self.phase(name='gocue', next='task', duration=self.params['GoCueDur'].val*1000.0)
         self.phase(name='task', next='response',duration=None)
-        self.phase(name='response', next='stopcue', self.params['ResponseDur'].val*1000.0)
+        self.phase(name='response', next='stopcue', duration=self.params['ResponseDur'].val*1000.0)
         self.phase(name='stopcue', next='intertrial', duration=self.params['StopCueDur'].val*1000.0)
         self.phase(name='postRun', duration=1000.0)
 
@@ -232,7 +231,7 @@ class BciApplication(BciGenericApplication):
         #=======================================================================
 
         if phase == 'intertrial':
-			pass
+            pass
 
         elif phase == 'baseline':
             pass
@@ -252,8 +251,8 @@ class BciApplication(BciGenericApplication):
             self.hand_switch = True
 
         elif phase == 'stopcue':
-			self.hand_switch = False
-			self.hand.setPose(0)
+            self.hand_switch = False
+            self.hand.setPose(0)
             self.stimuli['cue'].text = "Relax"
             self.states['TargetCode'] = 0 #Note we don't turn off the LastTargetCode
 
@@ -268,9 +267,9 @@ class BciApplication(BciGenericApplication):
         #Therefore it is not desirable to use phases for application logic in Process
         GatingApp.process(self, sig)
         if self.states['GatingOK']: self.change_phase('response')
-		if self.in_phase('task', min_packets=self.task_timeout_blocks): self.change_phase('stopcue')
-		if self.hand_switch:
-			self.hand.setPose(ceil(self.hand.getPose() + self.hand_speed))
+        if self.in_phase('task', min_packets=self.task_timeout_blocks): self.change_phase('stopcue')
+        if self.hand_switch:
+            self.hand.setPose(ceil(self.hand.getPose() + self.hand_speed))
 
     #############################################################
     def Frame(self, phase):
