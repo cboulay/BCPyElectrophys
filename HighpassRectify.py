@@ -115,9 +115,9 @@ class BciSignalProcessing(BciGenericSignalProcessing):
         lporder  = self.params['LPOrder'].val
         if do_proc_chans and lporder and lpcutoff:
             self.lpfilter = causalfilter(type='lowpass', order=lporder, freq_hz=lpcutoff, samplingfreq_hz=self.eegfs)
-            timeConstant = self.params['LPTimeConstant'].val*self.eegfs
-            self.decayFactor = numpy.exp( -1.0 / timeConstant )
-            self.previousOutput = numpy.zeros((indim[0],1))
+            #timeConstant = self.params['LPTimeConstant'].val*self.eegfs
+            #self.decayFactor = numpy.exp( -1.0 / timeConstant )
+            #self.previousOutput = numpy.zeros((indim[0],1))
         else:
             self.lpfilter = None
 
@@ -140,13 +140,13 @@ class BciSignalProcessing(BciGenericSignalProcessing):
 
             #LP Filter
             if self.lpfilter != None:
-                #proc_data = self.lpfilter(proc_data, axis=1)
-                nchans,nsamps = proc_data.shape
-                for cx in range(nchans):
-                    for sx in range(nsamps):
-                        self.previousOutput[cx] *= self.decayFactor
-                        self.previousOutput[cx] += sig[cx,sx] * (1.0 - self.decayFactor)
-                        proc_data[cx,sx] = self.previousOutput[cx]
+                proc_data = self.lpfilter(proc_data, axis=1)
+                #nchans,nsamps = proc_data.shape
+                #for cx in range(nchans):
+                    #for sx in range(nsamps):
+                        #self.previousOutput[cx] *= self.decayFactor
+                        #self.previousOutput[cx] += sig[cx,sx] * (1.0 - self.decayFactor)
+                        #proc_data[cx,sx] = self.previousOutput[cx]
             proc_data = proc_data * self.params['OutputScaleFactor'].val
             proc_data = proc_data + self.params['OutputOffset'].val
         #Concat the raw data to the bottom of the processed data

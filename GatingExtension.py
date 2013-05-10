@@ -63,6 +63,7 @@ class GatingApp(object):
                 app.addstatemonitor('GatingOK')
             if int(app.params['GatingReset'])==0:
                 app.addstatemonitor('msecInRange')
+            app.mindur = 1000*app.params['DurationMin'].val + randint(int(-1000*app.params['DurationRand'].val),int(1000*app.params['DurationRand'].val))#randomized EMG Gating duration
 
     @classmethod
     def halt(cls,app):

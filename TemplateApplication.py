@@ -43,19 +43,19 @@ class BciApplication(BciGenericApplication):
         #See here for already defined params and states http://bci2000.org/wiki/index.php/Contributions:BCPy2000#CurrentBlock
         #See further details http://bci2000.org/wiki/index.php/Technical_Reference:Parameter_Definition
         params = [
-            "PythonApp:Design	list	GoCueText=		 	2 Imagery Rest % % % // Text for cues. Defines N targets",
-            "PythonApp:Design	int		ClusterTargets=    	1     1     0   %  // Size of pseudorandomized target clusters or cycle(0)",
-            "PythonApp:Design	matrix  TargetRange= {1 2} {Min Max} -100.0 -80.0 80.0 100.0 0 -100 100 //Row for each target, Cols for Min(-100), Max(+100)",
-            "PythonApp:Design  float    PreRunDuration=     5.0   5.0   0.0 100.0 // PreRunDelay before the task starts",
-            "PythonApp:Design  float	IntertrialDur=	  	0.5   0.5   0.0 100.0 // Intertrial duration in seconds",
-            "PythonApp:Design  float	BaselineDur=		4.0   4.0   0.0 100.0 // Baseline duration in seconds",
-            "PythonApp:Design   float	GoCueDur=	  		1.0   1.0   0.0 100.0 // GoCue duration in seconds",
-            "PythonApp:Design  float	TaskDur=			6.0   6.0   0.0 100.0 // Min task duration in seconds (unless Gating)",
-            "PythonApp:Design  float	TaskRand=			3.0   3.0   0.0 100.0 // Additional randomization in seconds (unless Gating)",
-            "PythonApp:Design   float	ResponseDur=	  	0.2   0.2   0.0 100.0 // Response duration in seconds (unless ERP)",
-            "PythonApp:Design   float	StopCueDur=	  		1.0   1.0   0.0 100.0 // StopCue duration in seconds",
-            "PythonApp:Display  int		ScreenId=		   -1	-1	 %   %  // on which screen should the stimulus window be opened - use -1 for last",
-            "PythonApp:Display  float	WindowSize=		 	0.8   1.0   0.0 1.0 // size of the stimulus window, proportional to the screen",
+            "PythonApp:Design	list	GoCueText=		 	2 Imagery Rest % % %	// Text for cues. Defines N targets",
+            "PythonApp:Design	int		ClusterTargets=		1 1 0 %					// Size of pseudorandomized target clusters or cycle(0)",
+            "PythonApp:Design	matrix	TargetRange=		{1 2} {Min Max} -100.0 -80.0 80.0 100.0 0 -100 100 //Row for each target, Cols for Min(-100), Max(+100)",
+            "PythonApp:Design	float	PreRunDuration=		5.0   5.0   0.0 100.0	// PreRunDelay before the task starts",
+            "PythonApp:Design	float	IntertrialDur=	  	0.5   0.5   0.0 100.0	// Intertrial duration in seconds",
+            "PythonApp:Design	float	BaselineDur=		4.0   4.0   0.0 100.0	// Baseline duration in seconds",
+            "PythonApp:Design	float	GoCueDur=	  		1.0   1.0   0.0 100.0	// GoCue duration in seconds",
+            "PythonApp:Design	float	TaskDur=			6.0   6.0   0.0 100.0	// Min task duration in seconds (unless Gating)",
+            "PythonApp:Design	float	TaskRand=			3.0   3.0   0.0 100.0	// Additional randomization in seconds (unless Gating)",
+            "PythonApp:Design	float	ResponseDur=		0.2   0.2   0.0 100.0	// Response duration in seconds (unless ERP)",
+            "PythonApp:Design	float	StopCueDur=			1.0   1.0   0.0 100.0	// StopCue duration in seconds",
+            "PythonApp:Display	int		ScreenId=			-1	-1	 %   %  // on which screen should the stimulus window be opened - use -1 for last",
+            "PythonApp:Display	float	WindowSize=			0.8   1.0   0.0 1.0 // size of the stimulus window, proportional to the screen",
             ]
 
         states = [
