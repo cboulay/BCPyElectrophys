@@ -12,25 +12,26 @@ import WavTools
 
 class FeedbackApp(object):
     params = [
-              #"Tab:SubSection DataType Name= Value DefaultValue LowRange HighRange // Comment (identifier)",
-              #See further details http://bci2000.org/wiki/index.php/Technical_Reference:Parameter_Definition
-            "Feedback:Design    int          ContFeedbackEnable=  0 0 0 1 // Enable. Choose feedback below.: 0 no, 1 yes (boolean)",
-            "Feedback:Design    list         FeedbackChannels=    1 1 % % % // Channel(s) for feedback",
+			#"Tab:SubSection DataType Name= Value DefaultValue LowRange HighRange // Comment (identifier)",
+			#See further details http://bci2000.org/wiki/index.php/Technical_Reference:Parameter_Definition
+            "Feedback:Design	int			ContFeedbackEnable=  0 0 0 1 // Enable. Choose feedback below.: 0 no, 1 yes (boolean)",
+            "Feedback:Design	list		FeedbackChannels=    1 1 % % % // Channel(s) for feedback",
             #Sometimes we want to save some data (via ERPExtension) that is not fed back,
             #so the signal processing module will pass in more data than we need for feedback. Thus we need to select FeedbackChannels.
-            "Feedback:Design    int          BaselineFeedback=    0 % % % // Should feedback be provided outside task? (boolean)",
-            "Feedback:Design    int          BaselineConstant=    0 % % % // Should non-task feedback be constant? (boolean)",
-            "Feedback:Design    int          FakeFeedback=        0 % % % // Make feedback contingent on an external file (boolean)",
-            "Feedback:Design    string       FakeFile=            % % % % // Path to fake feedback csv file (inputfile)",
-            "Feedback:Visual    int          VisualFeedback=      0 0 0 1 // Show online feedback? (boolean)",
-            "Feedback:Visual    intlist      VisualType=          1 0 0 0 2 // Feedback type: 0 bar, 1 cursor, 2 color_change, 3 none",
-            "Feedback:Audio     int          AudioFeedback=       0 0 0 1 // Play continuous sounds? (boolean)",
-            "Feedback:Audio     matrix       AudioWavs=           2 1 300hz.wav 900hz.wav % % % // feedback wavs",
-            "Feedback:Handbox   int          HandboxFeedback=     0 0 0 1 // Move handbox? (boolean)",
-            "Feedback:Handbox   string       HandboxPort=         COM7 % % % // Serial port for controlling Handbox",
-            "Feedback:NMES      int          NMESFeedback=        0 % 0 1 // Enable neuromuscular stim feedback? (boolean)",
-            "Feedback:NMES      floatlist    NMESRange=           {Mid Max} 7 15 0 0 % //Midpoint and Max stim intensities",
-            "Feedback:NMES      string       NMESPort=            COM10 % % % // Serial port for controlling NMES",
+            "Feedback:Design	int			BaselineFeedback=    0 % % % // Should feedback be provided outside task? (boolean)",
+            "Feedback:Design	int			BaselineConstant=    0 % % % // Should non-task feedback be constant? (boolean)",
+            "Feedback:Design	int			FakeFeedback=        0 % % % // Make feedback contingent on an external file (boolean)",
+            "Feedback:Design	string		FakeFile=            % % % % // Path to fake feedback csv file (inputfile)",
+            "Feedback:Visual	int			VisualFeedback=      0 0 0 1 // Show online feedback? (boolean)",
+            "Feedback:Visual	intlist		VisualType=          1 0 0 0 2 // Feedback type: 0 bar, 1 cursor, 2 color_change, 3 none",
+            "Feedback:Visual	intlist		ShowTargets=         1 1 0 0 2 // Show visual target: 0 no, 1 yes",
+            "Feedback:Audio		int			AudioFeedback=       0 0 0 1 // Play continuous sounds? (boolean)",
+            "Feedback:Audio		matrix		AudioWavs=           2 1 300hz.wav 900hz.wav % % % // feedback wavs",
+            "Feedback:Handbox	int			HandboxFeedback=     0 0 0 1 // Move handbox? (boolean)",
+            "Feedback:Handbox	string		HandboxPort=         COM7 % % % // Serial port for controlling Handbox",
+            "Feedback:NMES		int			NMESFeedback=        0 % 0 1 // Enable neuromuscular stim feedback? (boolean)",
+            "Feedback:NMES		floatlist	NMESRange=           {Mid Max} 7 15 0 0 % //Midpoint and Max stim intensities",
+            "Feedback:NMES		string		NMESPort=            COM10 % % % // Serial port for controlling NMES",
         ]
     states = [
               #Name Length(nBits up to 32) Value ByteLocation(in state vector) BitLocation(0 to 7) CRLF
@@ -41,6 +42,7 @@ class FeedbackApp(object):
             "FBValue    16 0 0 0", #in blocks, 16-bit is max 65536
             "FBBlock   16 0 0 0", #Number of blocks that feedback has been on. Necessary for fake feedback.
             "Feedback 1 0 0 0", #Whether or not stimuli are currently presented.
+            "InRange 1 0 0 0", #1 for InRange, 0 for Outrange. This is not a phase state, but actually reflects the signal.
         ]
 
     @classmethod
@@ -61,6 +63,7 @@ class FeedbackApp(object):
 
             app.fbchan = app.fbchan if len(app.fbchan) == app.nclasses else [app.fbchan[0] for x in range(app.nclasses)]
             app.vfb_type = app.params['VisualType'].val if len(app.params['VisualType']) == app.nclasses else [app.params['VisualType'].val[0] for x in range(app.nclasses)]
+            app.showTargets = app.params['ShowTargets'].val if len(app.params['ShowTargets']) == app.nclasses else [app.params['ShowTargets'].val[0] for x in range(app.nclasses)]
 
     @classmethod
     def initialize(cls, app, indim, outdim):
@@ -69,6 +72,7 @@ class FeedbackApp(object):
                 app.addstatemonitor('FBValue')
                 app.addstatemonitor('FBBlock')
                 app.addstatemonitor('Feedback')
+                app.addstatemonitor('InRange')
 
             #===================================================================
             # Load fake data if we will be using fake feedback.
@@ -277,7 +281,7 @@ class FeedbackApp(object):
             elif phase == 'gocue': #We have our new target code.
                 if app.params['VisualFeedback'].val: #Visual _targets_
                     for j in range(app.nclasses):
-                        app.stimuli['target_'+str(j)].on = j==t-1#Update which targets are on
+                        app.stimuli['target_'+str(j)].on = j==t-1 and app.showTargets[j]#Update which targets are on
 
                     if app.vfb_type[t-1] == 2:#Colored circles.
                         is_rest = app.params['GoCueText'][t-1].lower() == "rest".lower()
@@ -328,12 +332,19 @@ class FeedbackApp(object):
 
             #Pull x back from the state into the range -10,10. This is useful in case enslave states is used.
             x = np.int16(app.states['FBValue']) * 3.0 / 10000.0
+            rangeVal = x  #Set a default rangeVal in case the feedback elements don't specify it.
 
+            #===============================================================
+            # VISUAL FEEDBACK (bars, cursors, color-changing circles)
+            #===============================================================
             if app.params['VisualFeedback'].val:
                 this_fb = app.stimuli[app.vfb_keys[t-1]]
                 if app.vfb_type[t-1]==0:#bar
                     update_by = 0.0 if not app.in_phase('task') and app.params['BaselineConstant'] else x
-                    app.bars[int(app.vfb_keys[t-1][-1])-1].set(update_by) #e.g. "barrect_1" take the "1"
+                    mybar = app.bars[int(app.vfb_keys[t-1][-1])-1]
+                    mybar.set(update_by) #e.g. "barrect_1" take the "1"
+                    rangeVal = mybar['val']
+                    #app.states['InRange'] = (10*x >= app.target_range[t-1][0]) and (10*x <= app.target_range[t-1][1])
                 elif app.vfb_type[t-1] == 1: #cursor
                     if not app.in_phase('task') and app.params['BaselineConstant']:
                         this_fb.position = app.positions['origin'].A.ravel().tolist()
@@ -342,11 +353,13 @@ class FeedbackApp(object):
                         next_pos = min(next_pos, app.scrh) #Never move the position off the top
                         next_pos = max(next_pos, 0) #Never move the position off the bottom
                         this_fb.y = next_pos
+                    rangeVal = this_fb.position
                 elif app.vfb_type[t-1] == 2: #color-changing circle.
                     fake_y = this_fb.color[0] - this_fb.color[2]#convert old color to a position on -1 to +1 scale.
                     fake_y = fake_y + app.col_speed * x#increment the position
                     fake_y = max(-1, fake_y)
                     fake_y = min(1, fake_y)
+                    rangeVal = 100*fake_y
                     new_r = fake_y if fake_y >= 0 else 0
                     new_g = 1-0.5*abs(fake_y)
                     new_b = -1*fake_y if fake_y<=0 else 0
@@ -355,18 +368,9 @@ class FeedbackApp(object):
                     #if app.states['FBBlock']>150: app.dbstop()
                     this_fb.color = new_color
 
-                #===============================================================
-                # Modify the color of the visual targets if we are in range.
-                #===============================================================
-                if app.params['GatingEnable'].val:
-                    in_range = app.states['InRange']
-                else:
-                    in_range = (10*x >= app.target_range[t-1][0]) and (10*x <= app.target_range[t-1][1])
-
-                for j in range(app.nclasses):
-                    app.stimuli['target_'+str(j)].color = [1-in_range, in_range, 0]
-                #app.stimuli['fixation'].color = [1-in_range, in_range, 0]#fixation color doesn't need to change.
-
+            #===============================================================
+            # AUDIO FEEDBACK (currently broken)
+            #===============================================================
             if app.params['AudioFeedback'].val and not app.in_phase('gocue'):
                 #app.fader_val from -1 to +1
                 #can increment or decrement at app.fader_speed
@@ -377,12 +381,18 @@ class FeedbackApp(object):
                 app.sounds[0].vol = 0.5 * (1 - app.fader_val)
                 app.sounds[1].vol = 0.5 * (1 + app.fader_val)
 
+            #===============================================================
+            # HANDBOX FEEDBACK (mechanical device for wrist extension)
+            #===============================================================
             if app.params['HandboxFeedback'].val:
                 angle = app.handbox.position
                 angle = angle + app.hand_speed * x
                 if not app.in_phase('task') and app.params['BaselineConstant']: angle = 45
                 app.handbox.position = angle
-
+            
+            #===============================================================
+            # NeuroMuscular Electrical Stimulation FEEDBACK
+            #===============================================================
             if app.params['NMESFeedback'].val:
                 app.nmes_i = app.nmes_i + app.nmes_speed * x
                 app.nmes_i = min(app.nmes_i, app.nmes_max)
@@ -392,6 +402,10 @@ class FeedbackApp(object):
                     elif app.nmes_i > app.nmes_baseline: app.nmes_i = app.nmes_i - app.nmes_speed
                     elif app.nmes_i < app.nmes_baseline: app.nmes_i = app.nmes_i + app.nmes_speed
                 elif not (app.nmes.intensity==int(app.nmes_i)): app.nmes.intensity = int(app.nmes_i)
+            #Determine if the feedback is in the desired range.
+            InRange = rangeVal >= app.target_range[t-1][0] and rangeVal <= app.target_range[t-1][1]
+            app.states['InRange'] = InRange
+            app.stimuli['target_'+str(t-1)].color = [1-InRange, InRange, 0] # Modify the color of the visual targets if we are in range.
 
     @classmethod
     def event(cls, app, phasename, event):

@@ -50,8 +50,9 @@ class BciApplication(BciGenericApplication):
             "PythonApp:Design	float	IntertrialDur=	  	0.5   0.5   0.0 100.0	// Intertrial duration in seconds",
             "PythonApp:Design	float	BaselineDur=		4.0   4.0   0.0 100.0	// Baseline duration in seconds",
             "PythonApp:Design	float	GoCueDur=	  		1.0   1.0   0.0 100.0	// GoCue duration in seconds",
-            "PythonApp:Design	float	TaskDur=			6.0   6.0   0.0 100.0	// Min task duration in seconds (unless Gating)",
-            "PythonApp:Design	float	TaskRand=			3.0   3.0   0.0 100.0	// Additional randomization in seconds (unless Gating)",
+            "PythonApp:Design	float	TaskDur=			6.0   6.0   0.0 100.0	// Min task duration in seconds",
+            "PythonApp:Design	float	TaskRand=			3.0   3.0   0.0 100.0	// Additional min randomization in seconds",
+            "PythonApp:Design	float	TaskMax=			9.0   9.0   0.0 100.0	// Max task duration in seconds (0 for no max)",
             "PythonApp:Design	float	ResponseDur=		0.2   0.2   0.0 100.0	// Response duration in seconds (unless ERP)",
             "PythonApp:Design	float	StopCueDur=			1.0   1.0   0.0 100.0	// StopCue duration in seconds",
             "PythonApp:Display	int		ScreenId=			-1	-1	 %   %  // on which screen should the stimulus window be opened - use -1 for last",
@@ -68,7 +69,7 @@ class BciApplication(BciGenericApplication):
             # "StopCue 1 0 0 0",
             "TargetCode 4 0 0 0", #Set to target int in gocue and 0 in stopcue
             "LastTargetCode 4 0 0 0", #Set to target int in gocue, not turned off. Needed for baseline feedback and inrange.
-            "TaskNBlocks 12 0 0 0",
+            "TaskMinNBlocks 12 0 0 0",
             #"TrialPhase 4 0 0 0",#TrialPhase unnecessary. Use built-in PresentationPhase
             #===================================================================
         ]
@@ -125,8 +126,7 @@ class BciApplication(BciGenericApplication):
         if 'ContFeedbackEnable' in self.params:	FeedbackApp.preflight(self, sigprops)
 
     #############################################################
-    def Initialize(self, indim, outdim):
-
+    def Initialize(self, indim, outdim):       
         #=======================================================================
         # Set the list of targetCodes (pseudorandomized)
         #=======================================================================
@@ -176,6 +176,7 @@ class BciApplication(BciGenericApplication):
         self.eegfs = self.nominal['SamplesPerSecond'] #Sampling rate
         self.spb = self.nominal['SamplesPerPacket'] #Samples per block/packet
         self.block_dur = 1000*self.spb/self.eegfs#duration (ms) of a sample block
+        self.taskMaxNBlocks = self.params['TaskMax'].val * self.eegfs / self.spb#Task will always go to response after this many blocks, even if extensions not ready
 
         #=======================================================================
         # State monitors for debugging.
@@ -187,7 +188,7 @@ class BciApplication(BciGenericApplication):
             addstatemonitor(self, 'CurrentTrial')
             addstatemonitor(self, 'TargetCode')
             addstatemonitor(self, 'LastTargetCode')
-            addstatemonitor(self, 'TaskNBlocks')
+            addstatemonitor(self, 'TaskMinNBlocks')
             addphasemonitor(self, 'phase', showtime=True)
 
             m = addstatemonitor(self, 'fs_reg')
@@ -247,7 +248,7 @@ class BciApplication(BciGenericApplication):
         self.phase(name='response', next='stopcue',\
                 duration=None if int(self.params['ERPDatabaseEnable']) else self.params['ResponseDur'].val*1000.0)
         self.phase(name='stopcue', next='intertrial', duration=self.params['StopCueDur'].val*1000.0)
-        self.phase(name='postRun', duration=1000.0)
+        self.phase(name='postRun', duration=1.0)
 
         self.design(start='preRun', new_trial='intertrial', end='postRun')
 
@@ -279,11 +280,8 @@ class BciApplication(BciGenericApplication):
             self.stimuli['cue'].text = self.params['GoCueText'][t-1]
 
         elif phase == 'task':
-            if 'GatingEnable' in self.params and int(self.params['GatingEnable']):
-                self.states['TaskNBlocks'] = 0
-            else:
-                task_length = self.params['TaskDur'].val + random()*self.params['TaskRand'].val
-                self.states['TaskNBlocks'] = task_length * self.eegfs / self.spb
+            task_length = self.params['TaskDur'].val + random()*self.params['TaskRand'].val
+            self.states['TaskMinNBlocks'] = task_length * self.eegfs / self.spb
 
         elif phase == 'response':
             pass
@@ -307,12 +305,14 @@ class BciApplication(BciGenericApplication):
         #Therefore it is not desirable to use phases for application logic in Process
         if 'MSEnable' in self.params:	MagstimApp.process(self, sig)
         if 'DigitimerEnable' in self.params:	DigitimerApp.process(self, sig)
-        if 'GatingEnable' in self.params:	GatingApp.process(self, sig)
         if 'ERPDatabaseEnable' in self.params:	ERPApp.process(self, sig)
         if 'ContFeedbackEnable' in self.params:	FeedbackApp.process(self, sig)
+        if 'GatingEnable' in self.params:	GatingApp.process(self, sig)
 
         #If we are in Task, and we are using GatingApp or MagstimApp or DigitimerApp
-        if self.in_phase('task', min_packets=self.states['TaskNBlocks']):
+        if self.taskMaxNBlocks>0 and self.in_phase('task', min_packets=self.taskMaxNBlocks):
+            self.change_phase('response')
+        elif self.in_phase('task', min_packets=self.states['TaskMinNBlocks']):
             criteria_met = not 'GatingEnable' in self.params or not int(self.params['GatingEnable']) or self.states['GatingOK']
             magstim_ready = not 'MSEnable' in self.params or not int(self.params['MSEnable']) or self.states['MagstimReady']
             digitimer_ready = not 'DigitimerEnable' in self.params or not int(self.params['DigitimerEnable']) or self.states['DigitimerReady']
@@ -320,7 +320,8 @@ class BciApplication(BciGenericApplication):
                 self.change_phase('response')
 
         #If we are in Response and we are using ERPApp and the ERP has been collected
-        if self.in_phase('response') and int(self.params['ERPDatabaseEnable']) and self.states['ERPCollected']:
+        if self.in_phase('response') and \
+                'ERPDatabaseEnable' in self.params and int(self.params['ERPDatabaseEnable']) and self.states['ERPCollected']:
             self.change_phase('stopcue')
 
     #############################################################

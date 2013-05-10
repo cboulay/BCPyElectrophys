@@ -28,7 +28,6 @@ class GatingApp(object):
 
         ]
     states = [
-            "InRange 1 0 0 0", #1 for InRange, 0 for Outrange. This is not a phase state, but actually reflects the signal.
             "GatingOK 1 0 0 0", #Boolean if all Gating paramaters are currently satisfied.
             "msecInRange 16 0 0 0", #Number of milliseconds in range, max 65536
         ]
@@ -59,11 +58,11 @@ class GatingApp(object):
     def initialize(cls, app, indim, outdim):
         if int(app.params['GatingEnable'])==1:
             if int(app.params['ShowSignalTime']):
-                app.addstatemonitor('InRange')
                 app.addstatemonitor('GatingOK')
             if int(app.params['GatingReset'])==0:
                 app.addstatemonitor('msecInRange')
             app.mindur = 1000*app.params['DurationMin'].val + randint(int(-1000*app.params['DurationRand'].val),int(1000*app.params['DurationRand'].val))#randomized EMG Gating duration
+            app.wasInRange = False
 
     @classmethod
     def halt(cls,app):
@@ -105,23 +104,31 @@ class GatingApp(object):
     @classmethod
     def process(cls,app,sig):
         if int(app.params['GatingEnable'])==1:
-            x = sig[app.gatechan,:].mean(axis=1)#still a matrix
-            x=float(x)#single value
-
-            #===================================================================
-            # Target ranges are specified in the range -100 to +100
+            # ===================================================================
+            # Use ContinuousFeedbackExtension's determination about InRange
+            # if that extension is enabled. Else, determine it ourselves from
+            # the current signal and the target ranges.
+            # Target ranges should be specified within -100 to +100
             # EMG signals are expected to range from 0 to 10 (10 = 100 % MVC)
             # ERD signals are expected to range from -10 to +10 (10 = 100% baseline)
             # Standard signals are expected to have mean 0 and unit variance, extremes -10 and +10
-            # Thus, multiply our signal by 10 when testing if it is in range
-            #===================================================================
-            x = x * 10.0
-            t = app.states['LastTargetCode'] #Keeps track of the previous trial's targetcode for feedback purposes.
-            app.states['InRange'] = (x >= app.target_range[t-1][0]) and (x <= app.target_range[t-1][1])
-            if app.changed('InRange', only=1) or not app.states['InRange']:
+            # Thus, multiply our signal by 10 to transform signal range to target range.
+            # ===================================================================
+            if 'ContFeedbackEnable' in app.params and int(app.params['ContFeedbackEnable'])==1:
+                inRange = app.states['InRange']
+                doReset = app.changed('InRange', only=1)
+            else:
+                x = sig[app.gatechan,:].mean(axis=1)#still a matrix
+                x=float(x)#single value
+                x = x * 10.0
+                t = app.states['LastTargetCode'] #Keeps track of the previous trial's targetcode for feedback purposes.
+                inRange = (x >= app.target_range[t-1][0]) and (x <= app.target_range[t-1][1])
+                doReset = inRange and not app.wasInRange
+                app.wasInRange = inRange
+            if doReset or not inRange:
                 app.remember('range_ok') #Resets range_ok unless we were already inrange.
                 if int(app.params['GatingReset']): app.states['msecInRange'] = 0 #Resets the timer
-            app.states['msecInRange'] = app.states['msecInRange'] + int(app.states['InRange'])*int(app.block_dur)
+            app.states['msecInRange'] = app.states['msecInRange'] + int(inRange)*int(app.block_dur)
             rangeok = app.states['msecInRange'] >= app.mindur
             enterok = True #TODO: Check entry direction condition.
             app.states['GatingOK'] = rangeok and enterok
