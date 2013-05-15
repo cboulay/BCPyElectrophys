@@ -94,6 +94,9 @@ class MagstimApp(object):
             elif phase == 'gocue': #New TargetCode is set in the application transition to gocue
                 #I hope this is enough time to set a new intensity. It should be if we are already armed.
                 app.magstim.remocon = True
+                #The following sets the stim intensity(ies) and ISI only if their current values
+                #are among the parameter-defined values. If they are not, assume they are manually set
+                #and the experimenter does not want them changed by the program.
                 app.magstim.intensity = app.magstimA[app.states['TargetCode']-1] if app.magstim.intensity in app.magstimA else app.magstim.intensity
                 app.magstim.intensityb = app.magstimB[app.states['TargetCode']-1] if app.magstim.intensityb in app.magstimB else app.magstim.intensityb
                 app.magstim.ISI = app.magstimISI[app.states['TargetCode']-1] if app.magstim.ISI in app.magstimISI else app.magstim.ISI
@@ -108,7 +111,7 @@ class MagstimApp(object):
                 app.magstim.trigger()
                 app.states['MSIntensityA'] = app.magstim.intensity
                 app.states['MSIntensityB'] = app.magstim.intensityb
-                app.states['ISIx10'] = app.magstim.ISI
+                app.states['ISIx10'] = 10*app.magstim.ISI
                 app.remember('tms_trig')
                 app.magstim.armed = False
 

@@ -52,7 +52,7 @@ class BciApplication(BciGenericApplication):
             "PythonApp:Design	float	GoCueDur=	  		1.0   1.0   0.0 100.0	// GoCue duration in seconds",
             "PythonApp:Design	float	TaskDur=			6.0   6.0   0.0 100.0	// Min task duration in seconds",
             "PythonApp:Design	float	TaskRand=			3.0   3.0   0.0 100.0	// Additional min randomization in seconds",
-            "PythonApp:Design	float	TaskMax=			9.0   9.0   0.0 100.0	// Max task duration in seconds (0 for no max)",
+            "PythonApp:Design	float	TaskMax=			0.0   9.0   0.0 100.0	// Max task duration in seconds (0 for no max)",
             "PythonApp:Design	float	ResponseDur=		0.2   0.2   0.0 100.0	// Response duration in seconds (unless ERP)",
             "PythonApp:Design	float	StopCueDur=			1.0   1.0   0.0 100.0	// StopCue duration in seconds",
             "PythonApp:Display	int		ScreenId=			-1	-1	 %   %  // on which screen should the stimulus window be opened - use -1 for last",
@@ -248,9 +248,9 @@ class BciApplication(BciGenericApplication):
         self.phase(name='response', next='stopcue',\
                 duration=None if int(self.params['ERPDatabaseEnable']) else self.params['ResponseDur'].val*1000.0)
         self.phase(name='stopcue', next='intertrial', duration=self.params['StopCueDur'].val*1000.0)
-        self.phase(name='postRun', duration=1.0)
+        #self.phase(name='postRun', duration=1.0)
 
-        self.design(start='preRun', new_trial='intertrial', end='postRun')
+        self.design(start='preRun', new_trial='intertrial')
 
     #############################################################
     def Transition(self, phase):
