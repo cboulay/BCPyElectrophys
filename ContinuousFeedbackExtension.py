@@ -343,7 +343,7 @@ class FeedbackApp(object):
                     update_by = 0.0 if not app.in_phase('task') and app.params['BaselineConstant'] else x
                     mybar = app.bars[int(app.vfb_keys[t-1][-1])-1]
                     mybar.set(update_by) #e.g. "barrect_1" take the "1"
-                    rangeVal = mybar.val
+                    rangeVal = mybar.val*10
                     #app.states['InRange'] = (10*x >= app.target_range[t-1][0]) and (10*x <= app.target_range[t-1][1])
                 elif app.vfb_type[t-1] == 1: #cursor
                     if not app.in_phase('task') and app.params['BaselineConstant']:

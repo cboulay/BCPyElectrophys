@@ -118,9 +118,19 @@ class GatingApp(object):
                 inRange = app.states['InRange']
                 doReset = app.changed('InRange', only=1)
             else:
-                x = sig[app.gatechan,:].mean(axis=1)#still a matrix
-                x=float(x)#single value
-                x = x * 10.0
+                x = sig[app.gatechan,:].mean(axis=1)#Extract the feedback channels.
+                x = x.A.ravel()[t-1]/3#Transform x to a measure mostly ranging from -3.26 to +3.26 SDs->Necessary for 16-bit integer state
+                #Save x to a state of uint16
+                x = min(x, 3.26)
+                x = max(x, -3.26)
+                temp_x = x * 10000
+                app.states['FBValue'] = np.uint16(temp_x) #0-32767 for positive, 65536-32768 for negative
+                app.states['FBBlock'] = app.states['FBBlock'] + 1
+
+                #Pull x back from the state into the range -10,10. This is useful in case enslave states is used.
+                x = np.int16(app.states['FBValue']) * 3.0 / 10000.0
+                
+                
                 t = app.states['LastTargetCode'] #Keeps track of the previous trial's targetcode for feedback purposes.
                 inRange = (x >= app.target_range[t-1][0]) and (x <= app.target_range[t-1][1])
                 doReset = inRange and not app.wasInRange

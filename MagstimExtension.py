@@ -89,21 +89,24 @@ class MagstimApp(object):
                 app.magstim.remocon = False
 
             elif phase == 'baseline':
-                pass
-
-            elif phase == 'gocue': #New TargetCode is set in the application transition to gocue
-                #I hope this is enough time to set a new intensity. It should be if we are already armed.
+                t = app.target_codes[app.states['CurrentTrial']-1] - 1
                 app.magstim.remocon = True
-                #The following sets the stim intensity(ies) and ISI only if their current values
-                #are among the parameter-defined values. If they are not, assume they are manually set
-                #and the experimenter does not want them changed by the program.
-                app.magstim.intensity = app.magstimA[app.states['TargetCode']-1] if app.magstim.intensity in app.magstimA else app.magstim.intensity
-                app.magstim.intensityb = app.magstimB[app.states['TargetCode']-1] if app.magstim.intensityb in app.magstimB else app.magstim.intensityb
-                app.magstim.ISI = app.magstimISI[app.states['TargetCode']-1] if app.magstim.ISI in app.magstimISI else app.magstim.ISI
+                app.magstim.set_stimarm(False)
+                newISI = app.magstimISI[t] if app.magstim.ISI in app.magstimISI else app.magstim.ISI
+                app.magstim.set_isi(newISI)
+                app.magstim.intensity = app.magstimA[t] if app.magstim.intensity in app.magstimA else app.magstim.intensity
+                new_intensityb = app.magstimB[t]
+                app.magstim.set_stimb(new_intensityb)
+                app.magstim.set_stimarm(True)
                 app.magstim.remocon = False
 
+            elif phase == 'gocue':
+                app.magstim.remocon = True
+                app.magstim.remocon = False
+                
             elif phase == 'task':
-                pass
+                app.magstim.remocon = True
+                app.magstim.remocon = False
 
             elif phase == 'response':
                 app.magstim.remocon = True
