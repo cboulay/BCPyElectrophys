@@ -65,8 +65,8 @@ class BciApplication(BciGenericApplication):
             "Task 1 0 0 0",
             # "Response 1 0 0 0",
             # "StopCue 1 0 0 0",
-            "TargetCode 4 0 0 0", #Set to target int in gocue and 0 in stopcue
-            "LastTargetCode 4 0 0 0", #Set to target int in gocue, not turned off. Needed for baseline feedback and inrange.
+            "TargetClass 4 0 0 0", #Set to target int in gocue and 0 in stopcue
+            "LastTargetClass 4 0 0 0", #Set to target int in gocue, not turned off. Needed for baseline feedback and inrange.
             "TaskNBlocks 12 0 0 0",
             #"TrialPhase 4 0 0 0",#TrialPhase unnecessary. Use built-in PresentationPhase
             #===================================================================
@@ -128,7 +128,7 @@ class BciApplication(BciGenericApplication):
     def Initialize(self, indim, outdim):
 
         #=======================================================================
-        # Set the list of targetCodes (pseudorandomized)
+        # Set the list of TargetClasss (pseudorandomized)
         #=======================================================================
         n_trials = self.params['TrialsPerBlock'].val * self.params['BlocksPerRun'].val
         classes_per_cluster = self.params['ClusterTargets'].val
@@ -185,8 +185,8 @@ class BciApplication(BciGenericApplication):
             addstatemonitor(self, 'Running', showtime=True)
             addstatemonitor(self, 'CurrentBlock')
             addstatemonitor(self, 'CurrentTrial')
-            addstatemonitor(self, 'TargetCode')
-            addstatemonitor(self, 'LastTargetCode')
+            addstatemonitor(self, 'TargetClass')
+            addstatemonitor(self, 'LastTargetClass')
             addstatemonitor(self, 'TaskNBlocks')
             addphasemonitor(self, 'phase', showtime=True)
 
@@ -220,7 +220,7 @@ class BciApplication(BciGenericApplication):
     #############################################################
     def StartRun(self):
         #if int(self.params['ShowFixation']):
-        self.states['LastTargetCode'] = self.target_codes[0]
+        self.states['LastTargetClass'] = self.target_codes[0]
         self.stimuli['fixation'].on = True
         if 'MSEnable' in self.params:	MagstimApp.startrun(self)
         if 'DigitimerEnable' in self.params:	DigitimerApp.startrun(self)
@@ -267,13 +267,13 @@ class BciApplication(BciGenericApplication):
 
         elif phase == 'baseline':
             pass
-        #Do I need the new TargetCode in baseline for any of the addons?
+        #Do I need the new TargetClass in baseline for any of the addons?
         #If not, then it belongs in gocue for consistency with regular BCI2000 modules.
 
         elif phase == 'gocue':
-            self.states['TargetCode'] = self.target_codes[self.states['CurrentTrial']-1]
-            t = self.states['TargetCode'] #It's useful to pull from states in case "enslave states" is used.
-            self.states['LastTargetCode'] = t#LastTargetCode maintains throughout baseline.
+            self.states['TargetClass'] = self.target_codes[self.states['CurrentTrial']-1]
+            t = self.states['TargetClass'] #It's useful to pull from states in case "enslave states" is used.
+            self.states['LastTargetClass'] = t#LastTargetClass maintains throughout baseline.
             self.stimuli['cue'].text = self.params['GoCueText'][t-1]
 
         elif phase == 'task':
@@ -288,7 +288,7 @@ class BciApplication(BciGenericApplication):
 
         elif phase == 'stopcue':
             self.stimuli['cue'].text = "Relax"
-            self.states['TargetCode'] = 0 #Note we don't turn off the LastTargetCode
+            self.states['TargetClass'] = 0 #Note we don't turn off the LastTargetClass
 
         self.stimuli['cue'].on = (phase in ['gocue', 'stopcue'])
 

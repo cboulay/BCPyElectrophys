@@ -57,7 +57,7 @@ class ERPThread(threading.Thread):
                     #my_trial.copy_details_from(self.app.period)
 
                     #Add detail values from the experimental conditions.
-                    my_trial.update_ddv('Task_condition',str(self.app.states['TargetCode']))
+                    my_trial.update_ddv('Task_condition',str(self.app.states['TargetClass']))
                     if int(self.app.params['DigitimerEnable'])>0:
                         my_trial.update_ddv('Nerve_stim_output',str(self.app.digistim.intensity))
                     if int(self.app.params['MSEnable'])>0:
@@ -264,7 +264,7 @@ class ERPApp(object):
                 app.states['ERPCollected'] = False
 
             elif phase == 'gocue':
-                app.trig_trap.trigger_threshold = app.trigthresh[app.states['TargetCode']-1] if len(app.trigthresh) >= app.states['TargetCode'] else app.trigthresh[-1]
+                app.trig_trap.trigger_threshold = app.trigthresh[app.states['TargetClass']-1] if len(app.trigthresh) >= app.states['TargetClass'] else app.trigthresh[-1]
 
             elif phase == 'task':
                 pass

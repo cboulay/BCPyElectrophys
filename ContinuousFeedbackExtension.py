@@ -249,9 +249,9 @@ class FeedbackApp(object):
     def transition(cls,app,phase):
         if app.params['ContFeedbackEnable'].val:
             #What target are we on?
-            #TargetCode and LastTargetCode are updated to the current target on GoCue transition.
-            #LastTargetCode will maintain the value of the most recent TargetCode even in Baseline.
-            t = app.states['LastTargetCode']
+            #TargetClass and LastTargetClass are updated to the current target on GoCue transition.
+            #LastTargetClass will maintain the value of the most recent TargetClass even in Baseline.
+            t = app.states['LastTargetClass']
             app.states['Feedback'] = phase=='task' or app.params['BaselineFeedback'].val#Will we provide feedback this phase?
 
             #===================================================================
@@ -309,7 +309,7 @@ class FeedbackApp(object):
     @classmethod
     def process(cls,app,sig):
         if int(app.params['ContFeedbackEnable'])==1 and app.states['Feedback']:
-            t = app.states['LastTargetCode'] #Use LastTargetCode because this does not become 0 between trials.
+            t = app.states['LastTargetClass'] #Use LastTargetClass because this does not become 0 between trials.
 
             if app.params['FakeFeedback'].val:
                 trial_i = app.states['CurrentTrial']-1 if app.states['CurrentTrial'] < app.fake_data.shape[0] else random.uniform(0,app.params['TrialsPerBlock'])

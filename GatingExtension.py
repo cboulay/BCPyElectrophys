@@ -131,7 +131,7 @@ class GatingApp(object):
                 x = np.int16(app.states['FBValue']) * 3.0 / 10000.0
                 
                 
-                t = app.states['LastTargetCode'] #Keeps track of the previous trial's targetcode for feedback purposes.
+                t = app.states['LastTargetClass'] #Keeps track of the previous trial's TargetClass for feedback purposes.
                 inRange = (x >= app.target_range[t-1][0]) and (x <= app.target_range[t-1][1])
                 doReset = inRange and not app.wasInRange
                 app.wasInRange = inRange
