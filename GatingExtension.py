@@ -59,7 +59,6 @@ class GatingApp(object):
         if int(app.params['GatingEnable'])==1:
             if int(app.params['ShowSignalTime']):
                 app.addstatemonitor('GatingOK')
-            if int(app.params['GatingReset'])==0:
                 app.addstatemonitor('msecInRange')
             app.mindur = 1000*app.params['DurationMin'].val + randint(int(-1000*app.params['DurationRand'].val),int(1000*app.params['DurationRand'].val))#randomized EMG Gating duration
             app.wasInRange = False
@@ -118,20 +117,13 @@ class GatingApp(object):
                 inRange = app.states['InRange']
                 doReset = app.changed('InRange', only=1)
             else:
+                t = app.states['LastTargetClass'] #Keeps track of the previous trial's TargetClass for feedback purposes.
                 x = sig[app.gatechan,:].mean(axis=1)#Extract the feedback channels.
                 x = x.A.ravel()[t-1]/3#Transform x to a measure mostly ranging from -3.26 to +3.26 SDs->Necessary for 16-bit integer state
                 #Save x to a state of uint16
                 x = min(x, 3.26)
                 x = max(x, -3.26)
-                temp_x = x * 10000
-                app.states['FBValue'] = np.uint16(temp_x) #0-32767 for positive, 65536-32768 for negative
-                app.states['FBBlock'] = app.states['FBBlock'] + 1
-
-                #Pull x back from the state into the range -10,10. This is useful in case enslave states is used.
-                x = np.int16(app.states['FBValue']) * 3.0 / 10000.0
-                
-                
-                t = app.states['LastTargetClass'] #Keeps track of the previous trial's TargetClass for feedback purposes.
+                x = x * 3
                 inRange = (x >= app.target_range[t-1][0]) and (x <= app.target_range[t-1][1])
                 doReset = inRange and not app.wasInRange
                 app.wasInRange = inRange

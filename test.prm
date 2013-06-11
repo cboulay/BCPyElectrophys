@@ -1,1 +1,10 @@
+Source:Signal%20Properties:DataIOFilter floatlist SourceChGain= 16 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 0.003 % % // gain for each channel (A/D units -> muV)
+Source:SignalGeneratorADC int ModulateAmplitude= 1 0 0 1 // Modulate the amplitude with the mouse (0=no, 1=yes) (boolean)
+Source:SignalGeneratorADC int SineChannelX= 1 0 0 % // Channel number of sinewave controlled by mouse x position
+Source:SignalGeneratorADC int SineChannelY= 2 0 0 % // Channel number of sinewave controlled by mouse y position (0 for all)
+Filtering:Normalizer matrix BufferConditions= 2 1 (Feedback)&&(TargetClass==1) (Feedback)&&(TargetClass==2) // expressions corresponding to data buffers (columns correspond to output channels, multiple rows correspond to multiple buffers)
 PythonApp int ShowSignalTime= 1 0 0 1 // show a timestamp based on the number of processed samples (boolean)
+Feedback:Design int ContFeedbackEnable= 1 0 0 1 // Enable. Choose feedback below.: 0 no, 1 yes (boolean)
+Feedback:Visual int VisualFeedback= 1 0 0 1 // Show online feedback? (boolean)
+Feedback:Visual intlist VisualType= 1 0 0 0 2 // Feedback type: 0 bar, 1 cursor, 2 color_change, 3 none
+Feedback:Visual intlist ShowTargets= 1 1 0 0 2 // Show visual target: 0 no, 1 yes

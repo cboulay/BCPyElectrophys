@@ -12,8 +12,8 @@ import WavTools
 
 class FeedbackApp(object):
     params = [
-			#"Tab:SubSection DataType Name= Value DefaultValue LowRange HighRange // Comment (identifier)",
-			#See further details http://bci2000.org/wiki/index.php/Technical_Reference:Parameter_Definition
+            #"Tab:SubSection DataType Name= Value DefaultValue LowRange HighRange // Comment (identifier)",
+            #See further details http://bci2000.org/wiki/index.php/Technical_Reference:Parameter_Definition
             "Feedback:Design	int			ContFeedbackEnable=  0 0 0 1 // Enable. Choose feedback below.: 0 no, 1 yes (boolean)",
             "Feedback:Design	list		FeedbackChannels=    1 1 % % % // Channel(s) for feedback",
             #Sometimes we want to save some data (via ERPExtension) that is not fed back,
