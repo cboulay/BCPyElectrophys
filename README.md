@@ -31,7 +31,7 @@ by BCPy2000, and since I use Python for other things
 3. Download and install [IPython 0.10.2](http://archive.ipython.org/release/0.10.2/ipython-0.10.2.win32-setup.exe)
 4. From [here](http://www.lfd.uci.edu/~gohlke/pythonlibs/) download and install the latest
     pywin32, numpy (MKL version is OK), scipy, matplotlib, pyaudio, and pyopengl
-    (be sure to get the files ending in win32-py2.6.exe)
+    (be sure to get the files ending in win32-py2.6.exe). matplotlib has additional dependencies. See the webpage.
 5. Download and install [PIL](http://www.pythonware.com/products/pil/) for Python 2.6.
 6. Download and install [pygame 1.9.1](http://www.pygame.org/download.shtml)
 7. Download and install [VisionEgg](http://www.lfd.uci.edu/~gohlke/pythonlibs/#visionegg)
