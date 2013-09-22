@@ -283,6 +283,7 @@ class ERPApp(object):
             app.leaky_trap.process(sig[app.erpchan,:])
             trig_dat = sig[app.trigchan,:]# if app.in_phase('response') else 0*sig[app.trigchan,:]
             app.trig_trap.process(trig_dat)
+            #print np.max(trig_dat)
 
             if app.in_phase('response') and app.trig_trap.full():
                 n_excess = (app.trig_trap.nseen-app.trig_trap.sprung_at)-app.trig_trap.nsamples
