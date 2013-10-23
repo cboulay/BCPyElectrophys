@@ -44,6 +44,7 @@ import IPython
 
 #IPython.__version__ might be "0.10.2" or "0.13"
 __IPYTHON_IS_NEWER_THAN_DOT_10__ = int(IPython.__version__.split('.')[0]) > 0 or int(IPython.__version__.split('.')[1]) > 10
+
 import platform
 win32 = (platform.system().lower() == 'windows')
 
@@ -58,7 +59,8 @@ if not __IPYTHON_IS_NEWER_THAN_DOT_10__:
 
 def Shell(): # call the returned instance to start the shell
 	if __IPYTHON_IS_NEWER_THAN_DOT_10__:
-		return IPython.frontend.terminal.embed.InteractiveShellEmbed()
+		return IPython.terminal.embed.InteractiveShellEmbed
+		#return IPython.frontend.terminal.embed.InteractiveShellEmbed()
 		#return IPython.embed
 	else:
 		return IPython.Shell.IPShellEmbed(rc_override={})
@@ -178,35 +180,33 @@ class tee:
 
 suspend_attrname = 'JEZ_WOULD_LIKE_YOU_TO_WAIT'
 debugger_attrname = 'UNTIL_THIS_DEBUGGER_HAS_FINISHED'
+__ISHELLREF__ = False
 
 def IPythonGiveWayToPDB(*pargs,**kwargs):
-	global __IPYTHON__
-	previous_chain = getattr(__IPYTHON__, suspend_attrname, None)
-	while getattr(getattr(__IPYTHON__, debugger_attrname, None), 'stack', []) != []:
+	global __ISHELLREF__
+	previous_chain = getattr(__ISHELLREF__, suspend_attrname, None)
+	while getattr(getattr(__ISHELLREF__, debugger_attrname, None), 'stack', []) != []:
 		time.sleep(0.010)
-	if previous_chain != None: __IPYTHON__.hooks.generate_prompt.chain = previous_chain
-	return __IPYTHON__.hooks.generate_prompt(0)
+	if previous_chain != None: __ISHELLREF__.hooks.generate_prompt.chain = previous_chain
+	return __ISHELLREF__.hooks.generate_prompt(0)
 
 def SuspendIPython():
-	global __IPYTHON__
-	if hasattr(__IPYTHON__, suspend_attrname): return
-	if __IPYTHON_IS_NEWER_THAN_DOT_10__:
-		previous_chain = list(__IPYTHON__.core.hooks.generate_prompt.chain)
-	else:
-		previous_chain = list(__IPYTHON__.hooks.generate_prompt.chain)
-	setattr(__IPYTHON__, suspend_attrname, previous_chain)
-	__IPYTHON__.set_hook('generate_prompt', IPythonGiveWayToPDB)
+	global __ISHELLREF__
+	if hasattr(__ISHELLREF__, suspend_attrname): return
+	previous_chain = list(__ISHELLREF__.hooks.generate_prompt.chain)
+	setattr(__ISHELLREF__, suspend_attrname, previous_chain)
+	__ISHELLREF__.set_hook('generate_prompt', IPythonGiveWayToPDB)
 
 def ReleaseIPython():
-	global __IPYTHON__
-	if hasattr(__IPYTHON__, suspend_attrname): delattr(__IPYTHON__, suspend_attrname)
+	global __ISHELLREF__
+	if hasattr(__ISHELLREF__, suspend_attrname): delattr(__ISHELLREF__, suspend_attrname)
 
 ITracer = IPython.core.debugger.Tracer if __IPYTHON_IS_NEWER_THAN_DOT_10__ else IPython.Debugger.Tracer
 class Tracer (ITracer):
 	def __init__(self, *pargs, **kwargs):
 		ITracer.__init__(self, *pargs, **kwargs)
-		global __IPYTHON__
-		setattr(__IPYTHON__, debugger_attrname, self.debugger)
+		global __ISHELLREF__
+		setattr(__ISHELLREF__, debugger_attrname, self.debugger)
 		
 	def __call__(self):
 		time.sleep(0.100)
@@ -218,10 +218,16 @@ def WaitForShell(timeout=0.1):
 	# to ensure that the shell is already running when it instantiates the
 	# Tracer object. This makes a difference, according to the documentation
 	# for IPython.Debugger.Tracer
-	global __IPYTHON__
+	global __ISHELLREF__
 	t = time.time() + timeout
 	while(time.time() < t):
-		try: __IPYTHON__; return True
+		try:
+			if __IPYTHON_IS_NEWER_THAN_DOT_10__:
+				__ISHELLREF__ = get_ipython()
+			else:
+				__ISHELLREF__ = __IPYTHON__
+			__ISHELLREF__
+			return True
 		except: time.sleep(0.010)
 	return False
 
