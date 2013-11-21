@@ -69,7 +69,7 @@ class MagstimApp(object):
 
     @classmethod
     def halt(cls,app):
-        if int(app.params['MSEnable'])==1:
+        if hasattr(app, 'magstim') and int(app.params['MSEnable'])==1:
             #Clear magstim from memory, which will also clear the serial port.
             app.magstim.__del__()
 
