@@ -31,8 +31,8 @@ You can mix and match architectures between modules (e.g., a 64-bit gUSBampSourc
 ### Install Python
 
 Python can be installed manually or as part of a larger "Python Distribution". The distributions usually include
-the most recent stable versions of Python (2.7 as of this writing), many additional packages that are common to specific fields,
-and some additional tools to help manage and edit your Python files.
+the most recent stable versions of Python (2.7 as of this writing), many additional packages that are common to specific fields, and some additional tools to help manage and edit your Python files.
+
 While recently there have been some changes to BCPy2000 to support Python 2.7, I still cannot get it to work.
 Thus the primary installation method outlined here will be the manual method for Python 2.6.
 I include some notes for other installation methods, including Manual 2.7 and the Anaconda and Canopy Python Distributions, but those methods do not work for me.
@@ -68,6 +68,7 @@ IPython in windows also depends on pyreadline.
 #### Manual Python 2.6 for 32-bit
 
 (If the version number is listed, then you must use that specific version)
+
 1. Download and install [setuptools](http://pypi.python.org/pypi/setuptools)
 	1. Download [ez_setup.py](https://bitbucket.org/pypa/setuptools/raw/bootstrap/ez_setup.py)
 	2. From the command-line, run `python ez_setup.py`
